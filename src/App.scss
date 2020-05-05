@@ -1,0 +1,46 @@
+@charset "utf-8";
+
+// Import a Google Font
+@import url('https://fonts.googleapis.com/css?family=Nunito:400,700');
+
+// Set your brand colors
+
+// Update Bulma's global variables
+$family-sans-serif: 'Nunito', sans-serif;
+// Disable the widescreen breakpoint
+$widescreen-enabled: false;
+
+// Disable the fullhd breakpoint
+$fullhd-enabled: false;
+
+// Update some of Bulma's component variables
+$body-background-color: hsl(0, 0%, 71%);
+
+// Import only what you need from Bulma
+@import '../node_modules/bulma/bulma';
+
+@mixin button($default-color, $active-color) {
+  border-color: transparent;
+  background-color: $default-color;
+  color: white;
+  margin-right: 0.5em;
+  margin-bottom: 1em;
+  &.is-active {
+    background-color: $active-color;
+  }
+  @media (max-width: 768px) {
+    margin-right: 2em;
+  }
+}
+
+.pgm {
+  .button {
+    @include button(darkred, rgba(139, 0, 0, 0.4));
+  }
+}
+
+.prev {
+  .button {
+    @include button(darkgreen, rgba(0, 100, 0, 0.4));
+  }
+}
