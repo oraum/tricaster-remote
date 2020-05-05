@@ -1,0 +1,22 @@
+{
+  "files": {
+    "main.css": "/tricaster-remote/static/css/main.256eac7b.chunk.css",
+    "main.js": "/tricaster-remote/static/js/main.b5f3e890.chunk.js",
+    "main.js.map": "/tricaster-remote/static/js/main.b5f3e890.chunk.js.map",
+    "runtime-main.js": "/tricaster-remote/static/js/runtime-main.8617dad8.js",
+    "runtime-main.js.map": "/tricaster-remote/static/js/runtime-main.8617dad8.js.map",
+    "static/js/2.3dbda4e3.chunk.js": "/tricaster-remote/static/js/2.3dbda4e3.chunk.js",
+    "static/js/2.3dbda4e3.chunk.js.map": "/tricaster-remote/static/js/2.3dbda4e3.chunk.js.map",
+    "index.html": "/tricaster-remote/index.html",
+    "precache-manifest.d88eaa771e3e442d4a5dcb059cc26143.js": "/tricaster-remote/precache-manifest.d88eaa771e3e442d4a5dcb059cc26143.js",
+    "service-worker.js": "/tricaster-remote/service-worker.js",
+    "static/css/main.256eac7b.chunk.css.map": "/tricaster-remote/static/css/main.256eac7b.chunk.css.map",
+    "static/js/2.3dbda4e3.chunk.js.LICENSE.txt": "/tricaster-remote/static/js/2.3dbda4e3.chunk.js.LICENSE.txt"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.8617dad8.js",
+    "static/js/2.3dbda4e3.chunk.js",
+    "static/css/main.256eac7b.chunk.css",
+    "static/js/main.b5f3e890.chunk.js"
+  ]
+}
