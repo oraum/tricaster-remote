@@ -40,14 +40,18 @@ export default App;
 
 
 class Input {
-    constructor(public name: string, public index: number, public pgm: boolean = false, public prev: boolean = false) {
+    constructor(public name: string, public index: number|string, public pgm: boolean = false, public prev: boolean = false) {
     }
 }
 
-class Controller extends React.Component<{ uri: string }, { inputs: Input[] }> {
-    state = {inputs: []}
-    ws: WebSocket = new WebSocket(`ws://${this.props.uri}:5951/v1/change_notifications`)
+class ME {
+    constructor(public name: string, public a: number, public b: number, public c: number, public d: number) {
+    }
+}
 
+class Controller extends React.Component<{ uri: string }, { inputs: Input[], me: ME[]}> {
+    state = {inputs: [], me: []}
+    ws: WebSocket = new WebSocket(`ws://${this.props.uri}/v1/change_notifications`)
 
 
     componentDidMount() {
@@ -55,6 +59,7 @@ class Controller extends React.Component<{ uri: string }, { inputs: Input[] }> {
         this.connectWebsocket();
         // get tally
         this.getTally();
+        this.getSwitcher();
     }
 
     componentWillUnmount() {
@@ -68,13 +73,15 @@ class Controller extends React.Component<{ uri: string }, { inputs: Input[] }> {
         this.ws.onopen = () => {
             console.debug("TriCaster WebSocket Opened")
         }
-        this.ws.onmessage = (msg)=> {
-            if (msg.data === "tally") {
+        this.ws.onmessage = (msg) => {
+            console.log(msg)
+            if (msg.data === "tally\x00") {
                 // do tally things
                 this.getTally();
-            } else if (msg.data === "switcher") {
+            } else if (msg.data === "switcher\x00") {
                 //do switcher things
-            } else if (msg.data === "buffer") {
+                this.getSwitcher()
+            } else if (msg.data === "buffer\x00") {
                 // do buffer things
             }
         }
@@ -82,7 +89,7 @@ class Controller extends React.Component<{ uri: string }, { inputs: Input[] }> {
     }
 
     getTally = async () => {
-        let response = await fetch(`http://${this.props.uri}:5952/v1/dictionary?key=tally`)
+        let response = await fetch(`http://${this.props.uri}/v1/dictionary?key=tally`)
         let xml = await response.text()
         console.group('Parse Tally')
         console.debug('raw: %o', xml)
@@ -101,13 +108,51 @@ class Controller extends React.Component<{ uri: string }, { inputs: Input[] }> {
         console.groupEnd()
     }
 
+    getSwitcher = async () => {
+        let response = await fetch(`http://${this.props.uri}/v1/dictionary?key=switcher`)
+        let xml = await response.text()
+        console.group('Parse Switcher')
+        console.debug('raw: %o', xml)
+        let document = new DOMParser().parseFromString(xml, "text/xml");
+        console.debug('parsed: %o', document)
+        let columns = document.getElementsByTagName('simulated_input');
+        let inputs = []
+        for (const column of columns) {
+            if (column.getAttribute('simulated_input_number')?.startsWith('V')) {
+                console.debug(column)
+                const a = column.getElementsByTagName('source_a')[0].getAttribute('a') ?? 0;
+                const b = column.getElementsByTagName('source_b')[0].getAttribute('b') ?? 0;
+                const c = column.getElementsByTagName('source_c')[0].getAttribute('c') ?? 0;
+                const d = column.getElementsByTagName('source_d')[0].getAttribute('d') ?? 0;
+                console.log(a, b, c, d)
+                let me = new ME(column.getAttribute('simulated_input_number') ?? '', +a, +b, +c, +d);
+                inputs.push(me)
+            }
+        }
+        console.debug("inputs: %o", inputs)
+        this.setState({me: inputs});
+        console.groupEnd()
+    }
+
     sendShortcut = (action: string) => {
         fetch(`http://${this.props.uri}:5952/v1/shortcut?${action}`).then(value => console.debug(value))
     }
 
     render() {
+        let me = this.state.me[0] as ME
         return (
             <>
+                {me !== undefined ?
+                    <><Row label={'ME 1 A'} className="me_a" onAction={this.sendShortcut} actionName="v1_a_row"
+                           inputs={this.state.inputs} isButtonActive={input => input.index === me.a}/>
+                        <Row label={'ME 1 B'} className="me_b" onAction={this.sendShortcut} actionName="v1_b_row"
+                             inputs={this.state.inputs} isButtonActive={input => input.index === me.b}/>
+                        <Row label={'ME 1 C'} className="me_c" onAction={this.sendShortcut} actionName="v1_c_row"
+                             inputs={this.state.inputs} isButtonActive={input => input.index === me.c}/>
+                        <Row label={'ME 1 D'} className="me_d" onAction={this.sendShortcut} actionName="v1_d_row"
+                             inputs={this.state.inputs} isButtonActive={input => input.index === me.d}/>
+                    </> : null
+                }
                 <Row label={'Pgm'} className="pgm" onAction={this.sendShortcut} actionName="main_a_row"
                      inputs={this.state.inputs} isButtonActive={input => input.pgm}/>
                 <Row label={'Prev'} className="prev" onAction={this.sendShortcut} actionName="main_b_row"
@@ -124,6 +169,10 @@ class ControllButtons extends React.Component<{ onAction(action: string): void }
             <div style={{marginTop: '1em'}}>
                 <ControlButton label="AUTO" onClick={() => this.props.onAction('name=main_auto')}/>
                 <ControlButton label="TAKE" onClick={() => this.props.onAction('name=main_take')}/>
+                <ControlButton label="DSK1" onClick={() => this.props.onAction('name=main_dsk1_auto')}/>
+                <ControlButton label="DSK2" onClick={() => this.props.onAction('name=main_dsk2_auto')}/>
+                <ControlButton label="DSK3" onClick={() => this.props.onAction('name=main_dsk3_auto')}/>
+                <ControlButton label="DSK4" onClick={() => this.props.onAction('name=main_dsk4_auto')}/>
             </div>
         );
     }
@@ -140,13 +189,12 @@ function ControlButton(props: { active?: boolean, label: string, onClick?: Mouse
 
 function Row(props: { label: string, className?: string, actionName: string, onAction(action: string): void, inputs: Input[], isButtonActive: (input: Input) => boolean }) {
     let buttons = props.inputs.map(value =>
-        <ControlButton label={value.index + 1 + ''} active={props.isButtonActive(value)} key={value.name}
+        <ControlButton label={(typeof value.index === 'number') ?value.index + 1 + '': value.index} active={props.isButtonActive(value)} key={value.name}
                        onClick={() => props.onAction(`name=${props.actionName}&value=${value.index}`)}/>
     )
     return (
         <>
             <div className={props.className}>
-                <div>{props.label}</div>
                 {
                     buttons
                 }

@@ -14,7 +14,7 @@ $widescreen-enabled: false;
 $fullhd-enabled: false;
 
 // Update some of Bulma's component variables
-$body-background-color: hsl(0, 0%, 71%);
+$body-background-color: hsl(0, 1%, 29%);
 
 // Import only what you need from Bulma
 @import '../node_modules/bulma/bulma';
@@ -35,12 +35,32 @@ $body-background-color: hsl(0, 0%, 71%);
 
 .pgm {
   .button {
-    @include button(darkred, rgba(139, 0, 0, 0.4));
+    @include button(#ac6d6d, #ff0000);
   }
 }
 
+.me_a {
+  .button {
+    @include button(#adadad, #00e1ff);
+  }
+}
+.me_b {
+  .button {
+    @include button(#adadad,#ffb700);
+  }
+}
+.me_c {
+  .button {
+    @include button(#adadad,#ff00c8);
+  }
+}
+.me_d {
+  .button {
+    @include button(#adadad, #77d04e);
+  }
+}
 .prev {
   .button {
-    @include button(darkgreen, rgba(0, 100, 0, 0.4));
+    @include button(#689c68, #4dff00);
   }
 }

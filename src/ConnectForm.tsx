@@ -118,7 +118,7 @@ function Infos(props: { data?: Infos }) {
 }
 
 export async function checkConnection(uri: string): Promise<Infos | null> {
-    const response = await fetch(`http://${uri}:5952/v1/version`)
+    const response = await fetch(`http://${uri}/v1/version`)
         .catch(reason => {
             console.error(reason);
             return new Response(null, {status: 404})
