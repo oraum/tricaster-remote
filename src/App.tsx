@@ -39,19 +39,36 @@ class App extends React.Component<{}, AppState> {
 export default App;
 
 
-class Input {
-    constructor(public name: string, public index: number | string, public pgm: boolean = false, public prev: boolean = false) {
+class Action {
+    constructor(public tally: Tally, public active: boolean = false, public action: () => void) {
+    }
+}
+
+class Tally {
+    constructor(public name: string, public index: number,) {
     }
 }
 
 class ME {
-    constructor(public name: string, public a: number, public b: number, public c: number, public d: number) {
+    constructor(public name: string, public a: SwitchRow, public b: SwitchRow, public c: SwitchRow, public d: SwitchRow) {
     }
 }
 
+class SwitchRow {
+    constructor(public inputs: Action[], public label: string) {
+    }
+}
 
-class Controller extends React.Component<{ uri: string }, { inputs: Input[], me: ME[] }> {
-    state = {inputs: [], me: []}
+type ControllerState = {
+    inputs: Tally[],
+    me: ME[],
+    pgm: SwitchRow,
+    prev: SwitchRow
+}
+
+
+class Controller extends React.Component<{ uri: string }, ControllerState> {
+    state: ControllerState = {inputs: [], me: [], pgm: new SwitchRow([], 'Pgm'), prev: new SwitchRow([], 'Prev')}
     ws: WebSocket = new WebSocket(`ws://${this.props.uri}/v1/change_notifications`)
 
 
@@ -99,14 +116,24 @@ class Controller extends React.Component<{ uri: string }, { inputs: Input[], me:
         console.debug('parsed: %o', document)
         let columns = document.getElementsByTagName('column');
         let inputs = []
+        const pgmInputs = []
+        const prevInputs = []
         for (const column of columns) {
             if (column.getAttribute('name')?.startsWith('input')) {
-                inputs.push(new Input(column.getAttribute('name') ?? '', +(column.getAttribute('index') ?? ''),
-                    column.getAttribute('on_pgm') === "true", column.getAttribute('on_prev') === "true"));
+                const tally = new Tally(column.getAttribute('name') ?? '', +(column.getAttribute('index') ?? ''));
+                inputs.push(tally);
+                pgmInputs.push(new Action(tally, column.getAttribute('on_pgm') === "true", () => this.sendShortcut(`name=main_a_row&value=${tally.index}`)));
+                prevInputs.push(new Action(tally, column.getAttribute('on_prev') === "true", () => this.sendShortcut(`name=main_b_row&value=${tally.index}`)));
             }
         }
         console.debug("inputs: %o", inputs)
-        this.setState({inputs: inputs});
+        console.debug("pgm: %o", pgmInputs)
+        console.debug("prev: %o", prevInputs)
+        this.setState({
+            inputs: inputs,
+            prev: {...this.state.prev, inputs: prevInputs},
+            pgm: {...this.state.pgm, inputs: pgmInputs}
+        });
         console.groupEnd()
     }
 
@@ -122,12 +149,16 @@ class Controller extends React.Component<{ uri: string }, { inputs: Input[], me:
         for (const column of columns) {
             if (column.getAttribute('simulated_input_number')?.startsWith('V')) {
                 console.debug(column)
-                const a = column.getElementsByTagName('source_a')[0].getAttribute('a') ?? 0;
-                const b = column.getElementsByTagName('source_b')[0].getAttribute('b') ?? 0;
-                const c = column.getElementsByTagName('source_c')[0].getAttribute('c') ?? 0;
-                const d = column.getElementsByTagName('source_d')[0].getAttribute('d') ?? 0;
-                console.log(a, b, c, d)
-                let me = new ME(column.getAttribute('simulated_input_number') ?? '', +a, +b, +c, +d);
+                const indexA = column.getElementsByTagName('source_a')[0].getAttribute('a') ?? 0;
+                const indexB = column.getElementsByTagName('source_b')[0].getAttribute('b') ?? 0;
+                const indexC = column.getElementsByTagName('source_c')[0].getAttribute('c') ?? 0;
+                const indexD = column.getElementsByTagName('source_d')[0].getAttribute('d') ?? 0;
+                const a = new SwitchRow(this.state.inputs.map((value, index) => new Action(value, index === +indexA, () => this.sendShortcut(`name=v1_a_row&value=${value.index}`))), 'A')
+                const b = new SwitchRow(this.state.inputs.map((value, index) => new Action(value, index === +indexB, () => this.sendShortcut(`name=v1_b_row&value=${value.index}`))), 'B')
+                const c = new SwitchRow(this.state.inputs.map((value, index) => new Action(value, index === +indexC, () => this.sendShortcut(`name=v1_c_row&value=${value.index}`))), 'C')
+                const d = new SwitchRow(this.state.inputs.map((value, index) => new Action(value, index === +indexD, () => this.sendShortcut(`name=v1_d_row&value=${value.index}`))), 'D')
+                console.debug(a, b, c, d)
+                let me = new ME(column.getAttribute('simulated_input_number') ?? '', a, b, c, d);
                 inputs.push(me)
             }
         }
@@ -137,28 +168,29 @@ class Controller extends React.Component<{ uri: string }, { inputs: Input[], me:
     }
 
     sendShortcut = (action: string) => {
-        fetch(`http://${this.props.uri}:5952/v1/shortcut?${action}`).then(value => console.debug(value))
+        fetch(`http://${this.props.uri}/v1/shortcut?${action}`).then(value => console.debug(value))
     }
 
     render() {
         let me = this.state.me[0] as ME
         return (
             <>
+                <MESwitch/>
                 {me !== undefined ?
-                    <><Row label={'ME 1 A'} className="me_a" onAction={this.sendShortcut} actionName="v1_a_row"
-                           inputs={this.state.inputs} isButtonActive={input => input.index === me.a}/>
-                        <Row label={'ME 1 B'} className="me_b" onAction={this.sendShortcut} actionName="v1_b_row"
-                             inputs={this.state.inputs} isButtonActive={input => input.index === me.b}/>
-                        <Row label={'ME 1 C'} className="me_c" onAction={this.sendShortcut} actionName="v1_c_row"
-                             inputs={this.state.inputs} isButtonActive={input => input.index === me.c}/>
-                        <Row label={'ME 1 D'} className="me_d" onAction={this.sendShortcut} actionName="v1_d_row"
-                             inputs={this.state.inputs} isButtonActive={input => input.index === me.d}/>
+                    <><Row label={'A'} className="me_a"
+                           inputs={me.a.inputs}/>
+                        <Row label={'B'} className="me_b"
+                             inputs={me.b.inputs}/>
+                        <Row label={'C'} className="me_c"
+                             inputs={me.c.inputs}/>
+                        <Row label={'D'} className="me_d"
+                             inputs={me.d.inputs}/>
                     </> : null
                 }
-                <Row label={'Pgm'} className="pgm" onAction={this.sendShortcut} actionName="main_a_row"
-                     inputs={this.state.inputs} isButtonActive={input => input.pgm}/>
-                <Row label={'Prev'} className="prev" onAction={this.sendShortcut} actionName="main_b_row"
-                     inputs={this.state.inputs} isButtonActive={input => input.prev}/>
+                <Row label={'Pgm'} className="pgm"
+                     inputs={this.state.pgm.inputs}/>
+                <Row label={'Prev'} className="prev"
+                     inputs={this.state.prev.inputs}/>
                 <MainButtons onAction={this.sendShortcut}/>
             </>
         );
@@ -194,11 +226,11 @@ function ControlButton(props: { active?: boolean, label: string, onClick?: Mouse
     )
 }
 
-function Row(props: { label: string, className?: string, actionName: string, onAction(action: string): void, inputs: Input[], isButtonActive: (input: Input) => boolean }) {
+function Row(props: { label: string, className?: string, inputs: Action[], actionName?: string }) {
     let buttons = props.inputs.map(value =>
-        <ControlButton label={(typeof value.index === 'number') ? value.index + 1 + '' : value.index}
-                       active={props.isButtonActive(value)} key={value.name}
-                       onClick={() => props.onAction(`name=${props.actionName}&value=${value.index}`)}/>
+        <ControlButton label={value.tally.index + 1 + ''}
+                       active={value.active} key={value.tally.name}
+                       onClick={() => value.action()}/>
     )
     return (
         <>
@@ -207,6 +239,19 @@ function Row(props: { label: string, className?: string, actionName: string, onA
                 {
                     buttons
                 }
+            </div>
+        </>
+    )
+}
+
+function MESwitch() {
+    return (
+        <>
+            <div className="buttons has-addons">
+                <button className="button">ME 1</button>
+                <button className="button">ME 2</button>
+                <button className="button">ME 3</button>
+                <button className="button">ME 4</button>
             </div>
         </>
     )
