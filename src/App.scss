@@ -64,3 +64,12 @@ $body-background-color: hsl(0, 1%, 29%);
     @include button(#689c68, #4dff00);
   }
 }
+
+.label {
+  color: white;
+  &:first-child {
+    display: inline-block;
+    min-width: 4em;
+    padding-top: calc(0.5em - 1px);
+  }
+}

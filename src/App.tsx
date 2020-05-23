@@ -40,7 +40,7 @@ export default App;
 
 
 class Input {
-    constructor(public name: string, public index: number|string, public pgm: boolean = false, public prev: boolean = false) {
+    constructor(public name: string, public index: number | string, public pgm: boolean = false, public prev: boolean = false) {
     }
 }
 
@@ -49,7 +49,8 @@ class ME {
     }
 }
 
-class Controller extends React.Component<{ uri: string }, { inputs: Input[], me: ME[]}> {
+
+class Controller extends React.Component<{ uri: string }, { inputs: Input[], me: ME[] }> {
     state = {inputs: [], me: []}
     ws: WebSocket = new WebSocket(`ws://${this.props.uri}/v1/change_notifications`)
 
@@ -58,8 +59,8 @@ class Controller extends React.Component<{ uri: string }, { inputs: Input[], me:
         //connect websocket
         this.connectWebsocket();
         // get tally
-        this.getTally();
-        this.getSwitcher();
+        this.getTally().then(() =>
+            this.getSwitcher());
     }
 
     componentWillUnmount() {
@@ -67,11 +68,12 @@ class Controller extends React.Component<{ uri: string }, { inputs: Input[], me:
     }
 
     connectWebsocket = () => {
-        // let url = `ws://${this.props.uri}:5951/v1/change_notifications`;
-        // let ws = new WebSocket(url);
         this.ws.onclose = this.connectWebsocket
         this.ws.onopen = () => {
             console.debug("TriCaster WebSocket Opened")
+            setInterval(() => {
+                this.ws.send('\n')
+            }, 15000)
         }
         this.ws.onmessage = (msg) => {
             console.log(msg)
@@ -157,13 +159,13 @@ class Controller extends React.Component<{ uri: string }, { inputs: Input[], me:
                      inputs={this.state.inputs} isButtonActive={input => input.pgm}/>
                 <Row label={'Prev'} className="prev" onAction={this.sendShortcut} actionName="main_b_row"
                      inputs={this.state.inputs} isButtonActive={input => input.prev}/>
-                <ControllButtons onAction={this.sendShortcut}/>
+                <MainButtons onAction={this.sendShortcut}/>
             </>
         );
     }
 }
 
-class ControllButtons extends React.Component<{ onAction(action: string): void }, {}> {
+class MainButtons extends React.Component<{ onAction(action: string): void }, {}> {
     render() {
         return (
             <div style={{marginTop: '1em'}}>
@@ -178,6 +180,11 @@ class ControllButtons extends React.Component<{ onAction(action: string): void }
     }
 }
 
+/**
+ * Simple Button with onClick Handler, label and active flag
+ * @param props
+ * @constructor
+ */
 function ControlButton(props: { active?: boolean, label: string, onClick?: MouseEventHandler }) {
     let className = "button" + (props.active ? ' is-active' : '');
     return (
@@ -189,12 +196,14 @@ function ControlButton(props: { active?: boolean, label: string, onClick?: Mouse
 
 function Row(props: { label: string, className?: string, actionName: string, onAction(action: string): void, inputs: Input[], isButtonActive: (input: Input) => boolean }) {
     let buttons = props.inputs.map(value =>
-        <ControlButton label={(typeof value.index === 'number') ?value.index + 1 + '': value.index} active={props.isButtonActive(value)} key={value.name}
+        <ControlButton label={(typeof value.index === 'number') ? value.index + 1 + '' : value.index}
+                       active={props.isButtonActive(value)} key={value.name}
                        onClick={() => props.onAction(`name=${props.actionName}&value=${value.index}`)}/>
     )
     return (
         <>
             <div className={props.className}>
+                <div className="label">{props.label}</div>
                 {
                     buttons
                 }
