@@ -53,13 +53,13 @@ export class ConnectForm extends React.Component<Props, State> {
                         <form onSubmit={this.handleSubmit}>
                             <div className="field is-horizontal">
                                 <div className="field-label is-normal">
-                                    <label className="label">IP/Hostname:</label>
+                                    <label className="label" htmlFor="ip">IP/Hostname:</label>
                                 </div>
                                 <div className="field-body">
                                     <div className="field">
                                         <div className="field has-addons">
                                             <p className="control is-expanded">
-                                                <input className="input" type="text" value={this.state.value}
+                                                <input id="ip" className="input" type="text" value={this.state.value}
                                                        disabled={this.state.connecting}
                                                        onChange={this.handleChange}/>
                                             </p>

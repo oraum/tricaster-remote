@@ -59,6 +59,12 @@ $body-background-color: hsl(0, 1%, 29%);
     @include button(#adadad, #77d04e);
   }
 }
+
+.me_dsk {
+  .button {
+    @include button(#adadad, #d0ce4e);
+  }
+}
 .prev {
   .button {
     @include button(#689c68, #4dff00);
@@ -69,7 +75,7 @@ $body-background-color: hsl(0, 1%, 29%);
   color: white;
   &:first-child {
     display: inline-block;
-    min-width: 4em;
+    min-width: 3em;
     padding-top: calc(0.5em - 1px);
   }
 }
