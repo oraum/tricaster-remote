@@ -1,0 +1,33 @@
+---
+- hosts: local
+  tasks:
+    - name: build site
+      command: npm run build
+      register: build_result
+    - name: build archive
+      archive:
+        path: "{{ansible_facts.env.PWD}}/../build/*"
+        dest: /tmp/build.tgz
+      register: archive_ret
+
+- hosts: webserver
+  tasks:
+    - name: deploy site
+      unarchive:
+        src: /tmp/build.tgz
+        dest: /var/www/html/
+        owner: www-data
+        group: www-data
+#        mode: "u=rwX,g=rX,o=rX"
+      become: yes
+    - name: fix permissions
+      file:
+        path: /var/www/html
+        owner: www-data
+        group: www-data
+        recurse: yes
+        mode: '{{ item }}'
+      loop:
+        - '-x'
+        - 'u=rwX,g=rX,o=rX'
+      become: yes
