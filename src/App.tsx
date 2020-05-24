@@ -2,6 +2,7 @@ import React, {MouseEventHandler} from 'react';
 import './App.scss'
 import {ConnectForm} from "./ConnectForm";
 import {NavBar} from "./NavBar";
+import {MEControls} from "./MEControls";
 
 type AppState = {
     connected: boolean,
@@ -51,7 +52,7 @@ class Tally {
     }
 }
 
-class ME {
+export class ME {
     constructor(public name: string, public a: SwitchRow, public b: SwitchRow, public c: SwitchRow, public d: SwitchRow, public dsks: SwitchRow) {
     }
 }
@@ -66,7 +67,6 @@ type ControllerState = {
     me: ME[],
     pgm: SwitchRow,
     prev: SwitchRow,
-    meSelected: number
 }
 
 
@@ -76,7 +76,6 @@ class Controller extends React.Component<{ uri: string }, ControllerState> {
         me: [],
         pgm: new SwitchRow([], 'Pgm'),
         prev: new SwitchRow([], 'Prev'),
-        meSelected: 0
     }
     ws: WebSocket = new WebSocket(`ws://${this.props.uri}/v1/change_notifications`)
 
@@ -145,9 +144,6 @@ class Controller extends React.Component<{ uri: string }, ControllerState> {
                 });
             }
         }
-        console.debug("buttons: %o", inputs)
-        console.debug("pgm: %o", pgmInputs)
-        console.debug("prev: %o", prevInputs)
         this.setState({
             inputs: inputs,
             prev: {...this.state.prev, inputs: prevInputs},
@@ -214,23 +210,9 @@ class Controller extends React.Component<{ uri: string }, ControllerState> {
     }
 
     render() {
-        let me = this.state.me[this.state.meSelected] as ME
         return (
             <>
-                <MESwitch meSelected={index => this.setState({meSelected: index})}/>
-                {me !== undefined ?
-                    <><Row label={me.a.label} className="me_a"
-                           inputs={me.a.inputs}/>
-                        <Row label={me.b.label} className="me_b"
-                             inputs={me.b.inputs}/>
-                        <Row label={me.c.label} className="me_c"
-                             inputs={me.c.inputs}/>
-                        <Row label={me.d.label} className="me_d"
-                             inputs={me.d.inputs}/>
-                        <Row label={me.dsks.label} className="me_dsk"
-                             inputs={me.dsks.inputs}/>
-                    </> : null
-                }
+                <MEControls me={this.state.me}/>
                 <br/>
                 <Row label={'Pgm'} className="pgm"
                      inputs={this.state.pgm.inputs}/>
@@ -242,6 +224,7 @@ class Controller extends React.Component<{ uri: string }, ControllerState> {
     }
 
     private createAdditionalActions(me: string, row: string): Action[] {
+        me = me.toLowerCase()
         const actions: Action[] = []
         actions.push(this.createAdditionalAction(me, row, 'DDR 1', 'ddr1'))
         actions.push(this.createAdditionalAction(me, row, 'DDR 2', 'ddr2'))
@@ -260,7 +243,7 @@ class Controller extends React.Component<{ uri: string }, ControllerState> {
         return {
             label: label,
             active: false,
-            action: event => this.sendShortcut(`?name=${me}_${row}_row_named_input&value=${inputValue}`)
+            action: () => this.sendShortcut(`name=${me}_${row}_row_named_input&value=${inputValue}`)
         }
     }
 
@@ -273,11 +256,12 @@ class Controller extends React.Component<{ uri: string }, ControllerState> {
     }
 
     private createDSKActions(name: string): Action[] {
+        name = name.toLowerCase()
         const actions: Action[] = []
-        actions.push({label: 'DSK 1', active: false, action: event => this.sendShortcut(`?name=${name}_dsk1_auto`)});
-        actions.push({label: 'DSK 2', active: false, action: event => this.sendShortcut(`?name=${name}_dsk2_auto`)});
-        actions.push({label: 'DSK 3', active: false, action: event => this.sendShortcut(`?name=${name}_dsk3_auto`)});
-        actions.push({label: 'DSK 4', active: false, action: event => this.sendShortcut(`?name=${name}_dsk4_auto`)});
+        actions.push({label: 'DSK 1', active: false, action: () => this.sendShortcut(`name=${name}_dsk1_auto`)});
+        actions.push({label: 'DSK 2', active: false, action: () => this.sendShortcut(`name=${name}_dsk2_auto`)});
+        actions.push({label: 'DSK 3', active: false, action: () => this.sendShortcut(`name=${name}_dsk3_auto`)});
+        actions.push({label: 'DSK 4', active: false, action: () => this.sendShortcut(`name=${name}_dsk4_auto`)});
         return actions;
     }
 }
@@ -313,7 +297,7 @@ function ControlButton(props: ControllButtonProps) {
     )
 }
 
-function Row(props: { label: string, className?: string, inputs: Action[] }) {
+export function Row(props: { label: string, className?: string, inputs: Action[] }) {
     let buttons = props.inputs.map(value =>
         <ControlButton label={value.label}
                        active={value.active} key={value.label}
@@ -323,23 +307,9 @@ function Row(props: { label: string, className?: string, inputs: Action[] }) {
         <>
             <div className={props.className}>
                 <div className="label">{props.label}</div>
-                {
-                    buttons
-                }
+                {buttons}
             </div>
         </>
     )
 }
 
-function MESwitch(props: { meSelected(index: number): void }) {
-    return (
-        <>
-            <div className="buttons has-addons">
-                <button className="button" onClick={() => props.meSelected(0)}>ME 1</button>
-                <button className="button" onClick={() => props.meSelected(1)}>ME 2</button>
-                <button className="button" onClick={() => props.meSelected(2)}>ME 3</button>
-                <button className="button" onClick={() => props.meSelected(3)}>ME 4</button>
-            </div>
-        </>
-    )
-}

@@ -39,32 +39,6 @@ $body-background-color: hsl(0, 1%, 29%);
   }
 }
 
-.me_a {
-  .button {
-    @include button(#adadad, #00e1ff);
-  }
-}
-.me_b {
-  .button {
-    @include button(#adadad,#ffb700);
-  }
-}
-.me_c {
-  .button {
-    @include button(#adadad,#ff00c8);
-  }
-}
-.me_d {
-  .button {
-    @include button(#adadad, #77d04e);
-  }
-}
-
-.me_dsk {
-  .button {
-    @include button(#adadad, #d0ce4e);
-  }
-}
 .prev {
   .button {
     @include button(#689c68, #4dff00);

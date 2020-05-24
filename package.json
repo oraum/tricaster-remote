@@ -2,7 +2,6 @@
   "name": "tricaster-remote",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://oraum.github.io/tricaster-remote",
   "dependencies": {
     "@mdi/js": "^5.1.45",
     "@mdi/react": "^1.4.0",
