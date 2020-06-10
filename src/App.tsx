@@ -3,36 +3,38 @@ import './App.scss'
 import {ConnectedConnectForm as ConnectForm} from "./ConnectForm";
 import {NavBar} from "./NavBar";
 import {MEControls} from "./MEControls";
+import {connect} from "react-redux";
+import {State as AppState} from "./reducers";
 
-type AppState = {
-    connected: boolean,
-    uri?: string
-}
+const mapStateToProps = (state: AppState) => ({
+    uri: state.uri,
+    connected: state.connected
+});
 
-class App extends React.Component<{}, AppState> {
-    state: AppState = {connected: false}
+const connector = connect(
+    mapStateToProps
+)
 
-    render() {
-        return (
-            <>
-                <NavBar/>
-                <div className={'modal' + (!this.state.connected ? ' is-active' : '')}>
-                    <div className="modal-background"/>
-                    <div className="modal-content">
-                        <ConnectForm/>
-                    </div>
-                </div>
-                {this.state.uri &&
-                <section className="section">
-                    <Controller uri={this.state.uri}/>
-                </section>
-                }
-            </>
-        );
-    }
-}
+type AppProps = ReturnType<typeof mapStateToProps>
 
-export default App;
+const App = (props: AppProps) =>
+    <>
+        <NavBar/>
+        <div className={'modal' + (!props.connected ? ' is-active' : '')}>
+            <div className="modal-background"/>
+            <div className="modal-content">
+                <ConnectForm/>
+            </div>
+        </div>
+        {props.connected && props.uri &&
+        <section className="section">
+            <Controller uri={props.uri}/>
+        </section>
+        }
+    </>;
+
+
+export default connector(App);
 
 
 type Action = {
