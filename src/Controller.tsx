@@ -2,10 +2,15 @@ import React, {MouseEventHandler} from "react";
 import {MEControls} from "./MEControls";
 import {
     BUTTON_ACTION_EXECUTED,
-    ButtonActionExecuted,
+    ButtonActionExecutedAction,
     INITIAL_TALLY_LOADED,
-    InitialTallyLoaded,
-    RootState
+    InitialTallyLoadedAction,
+    MEState,
+    RootState,
+    SWITCHER_LOADED,
+    SwitcherLoadedAction,
+    TALLY_LOADED,
+    TallyLoadedAction
 } from "./reducers";
 import {connect, ConnectedProps} from "react-redux";
 import {Row} from "./Row";
@@ -39,12 +44,18 @@ type ControllerState = {
 
 const mapStateToProps = (state: RootState) => ({
     uri: state.app.uri,
-    inputs: state.controller.tallies?.filter(tally => tally.name.startsWith("input"))
+    inputs: state.controller.tallies?.filter(tally => tally.name.startsWith("input")),
+    mestates: state.controller.me
 });
 
 const mapDispatch = {
-    actionExecuted: (): ButtonActionExecuted => ({type: BUTTON_ACTION_EXECUTED}),
-    initialTallyLoaded: (tallies: Tally[]): InitialTallyLoaded => ({type: INITIAL_TALLY_LOADED, tallies: tallies})
+    actionExecuted: (): ButtonActionExecutedAction => ({type: BUTTON_ACTION_EXECUTED}),
+    tallyLoaded: (tallies: Tally[]): TallyLoadedAction => ({type: TALLY_LOADED, tallies: tallies}),
+    initialTallyLoaded: (tallies: Tally[]): InitialTallyLoadedAction => ({
+        type: INITIAL_TALLY_LOADED,
+        tallies: tallies
+    }),
+    switcherLoaded: (mes: MEState[]): SwitcherLoadedAction => ({type: SWITCHER_LOADED, me: mes})
 }
 
 const connector = connect(
@@ -67,7 +78,7 @@ class ControllerComponent extends React.Component<Props, ControllerState> {
         // get tally
         this.getTally().then((tallies) => {
             this.props.initialTallyLoaded(tallies);
-            this.getSwitcher();
+            this.getSwitcher().then(this.props.switcherLoaded);
         });
     }
 
@@ -87,10 +98,10 @@ class ControllerComponent extends React.Component<Props, ControllerState> {
             console.log(msg)
             if (msg.data === "tally\x00") {
                 // do tally things
-                this.getTally();
+                this.getTally().then(this.props.tallyLoaded);
             } else if (msg.data === "switcher\x00") {
                 //do switcher things
-                this.getSwitcher()
+                this.getSwitcher().then(this.props.switcherLoaded)
             } else if (msg.data === "buffer\x00") {
                 // do buffer things
             }
@@ -127,6 +138,7 @@ class ControllerComponent extends React.Component<Props, ControllerState> {
         console.debug('parsed: %o', document)
         let columns = document.getElementsByTagName('simulated_input');
         let mes = []
+        let mestates: MEState[] = []
         if (this.props.inputs !== undefined) {
             const inputs = this.props.inputs
 
@@ -135,6 +147,13 @@ class ControllerComponent extends React.Component<Props, ControllerState> {
                     console.debug(column)
                     const name = column.getAttribute('simulated_input_number') ?? ''
                     const activeInputs = this.getActiveInputs(column)
+                    mestates.push({
+                        name: name,
+                        a: activeInputs.a,
+                        b: activeInputs.b,
+                        c: activeInputs.c,
+                        d: activeInputs.d
+                    })
                     const a = new SwitchRow(inputs.map((value, index) => ({
                         tally: value,
                         label: (value.index + 1).toString(),
@@ -173,6 +192,7 @@ class ControllerComponent extends React.Component<Props, ControllerState> {
         console.debug("inputs: %o", mes)
         this.setState({me: mes});
         console.groupEnd()
+        return mestates
     }
 
     sendShortcut = (action: string) => {
@@ -183,10 +203,15 @@ class ControllerComponent extends React.Component<Props, ControllerState> {
     render() {
         return (
             <>
-                <MEControls me={this.state.me}/>
-                <br/>
-                {this.props.inputs !== undefined && this.props.uri !== undefined &&
-                <MainOuts inputs={this.props.inputs} uri={this.props.uri} sendShortcut={this.sendShortcut}/>
+                {
+                    this.props.inputs !== undefined && this.props.uri !== undefined && this.props.mestates !== undefined &&
+                    <>
+                        <MEControls inputs={this.props.inputs} sendShortcut={this.sendShortcut}
+                                    mestates={this.props.mestates}/>
+                        <br/>
+                        <MainOuts inputs={this.props.inputs} uri={this.props.uri} sendShortcut={this.sendShortcut}/>
+
+                    </>
                 }
             </>
         );
@@ -246,14 +271,14 @@ const MainOuts = (props: { uri: string, inputs: Tally[], sendShortcut: (action: 
                 <Row label={'Pgm'} className="pgm"
                      inputs={props.inputs.map(input => ({
                          tally: input,
-                         label: input.index.toString(),
+                         label: (input.index + 1).toString(),
                          active: input.onPgm,
                          action: () => props.sendShortcut(`name=main_a_row&value=${input.index}`)
                      }))}/>
                 <Row label={'Prev'} className="prev"
                      inputs={props.inputs.map(input => ({
                          tally: input,
-                         label: input.index.toString(),
+                         label: (input.index + 1).toString(),
                          active: input.onPrev,
                          action: () => props.sendShortcut(`name=main_b_row&value=${input.index}`)
                      }))}/>

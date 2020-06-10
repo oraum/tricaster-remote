@@ -1,5 +1,5 @@
 import {Action, AnyAction, combineReducers} from 'redux'
-import {ME, Tally} from "./Controller";
+import {Tally} from "./Controller";
 
 export const CONNECTED = 'CONNECTED'
 
@@ -34,28 +34,44 @@ export function appReducer(state = initialState, action: AppActionTypes) {
 export const TALLY_LOADED = 'TALLY_LOADED'
 
 export interface TallyLoadedAction extends AnyAction {
-    type: typeof TALLY_LOADED
+    type: typeof TALLY_LOADED,
+    tallies: Tally[]
 }
 
 export const BUTTON_ACTION_EXECUTED = 'BUTTON_ACTION_EXECUTED'
 
-export interface ButtonActionExecuted extends Action {
+export interface ButtonActionExecutedAction extends Action {
     type: typeof BUTTON_ACTION_EXECUTED
 }
 
 export const INITIAL_TALLY_LOADED = 'INITIAL_TALLY_LOADED'
 
-export interface InitialTallyLoaded extends AnyAction {
+export interface InitialTallyLoadedAction extends AnyAction {
     type: typeof INITIAL_TALLY_LOADED,
     tallies: Tally[]
 }
 
-export type ControllerActionTypes = TallyLoadedAction | ButtonActionExecuted | InitialTallyLoaded
+export const SWITCHER_LOADED = 'SWITCHER_LOADED'
+
+export interface SwitcherLoadedAction extends AnyAction {
+    type: typeof SWITCHER_LOADED,
+    me: MEState[]
+}
+
+export type ControllerActionTypes =
+    TallyLoadedAction
+    | ButtonActionExecutedAction
+    | InitialTallyLoadedAction
+    | SwitcherLoadedAction
+
+export type MEState = {
+    name: string, a: number, b: number, c: number, d: number
+}
 
 interface ControllerState {
     initalTallyLoaded: boolean
     inputs?: Tally[],
-    me?: ME[],
+    me?: MEState[],
     tallies?: Tally[],
 }
 
@@ -69,8 +85,10 @@ export function controllerReducer(state: ControllerState = {initalTallyLoaded: f
             // build page layout
             //TODO:
             return {...state}
-        case "INITIAL_TALLY_LOADED":
+        case INITIAL_TALLY_LOADED:
             return {...state, initalTallyLoaded: true, tallies: action.tallies}
+        case SWITCHER_LOADED:
+            return {...state, me: action.me}
         default:
             return state
     }
