@@ -1,5 +1,5 @@
 import {Action, AnyAction, combineReducers} from 'redux'
-import {Action as ActionType, ME} from "./Controller";
+import {ME, Tally} from "./Controller";
 
 export const CONNECTED = 'CONNECTED'
 
@@ -33,7 +33,7 @@ export function appReducer(state = initialState, action: AppActionTypes) {
 
 export const TALLY_LOADED = 'TALLY_LOADED'
 
-export interface TallyLoadedAction extends Action {
+export interface TallyLoadedAction extends AnyAction {
     type: typeof TALLY_LOADED
 }
 
@@ -43,18 +43,34 @@ export interface ButtonActionExecuted extends Action {
     type: typeof BUTTON_ACTION_EXECUTED
 }
 
-export type ControllerActionTypes = TallyLoadedAction | ButtonActionExecuted
+export const INITIAL_TALLY_LOADED = 'INITIAL_TALLY_LOADED'
 
-interface ControllerState {
-    inputs?: ActionType[],
-    me?: ME[],
+export interface InitialTallyLoaded extends AnyAction {
+    type: typeof INITIAL_TALLY_LOADED,
+    tallies: Tally[]
 }
 
-export function controllerReducer(state: ControllerState = {}, action: ControllerActionTypes) {
+export type ControllerActionTypes = TallyLoadedAction | ButtonActionExecuted | InitialTallyLoaded
+
+interface ControllerState {
+    initalTallyLoaded: boolean
+    inputs?: Tally[],
+    me?: ME[],
+    tallies?: Tally[],
+}
+
+export function controllerReducer(state: ControllerState = {initalTallyLoaded: false}, action: ControllerActionTypes) {
     switch (action.type) {
         case TALLY_LOADED:
+            if (!state.initalTallyLoaded) {
+                // ignore changes
+                return state
+            }
+            // build page layout
             //TODO:
             return {...state}
+        case "INITIAL_TALLY_LOADED":
+            return {...state, initalTallyLoaded: true, tallies: action.tallies}
         default:
             return state
     }

@@ -1,6 +1,12 @@
 import React, {MouseEventHandler} from "react";
 import {MEControls} from "./MEControls";
-import {BUTTON_ACTION_EXECUTED, ButtonActionExecuted, RootState} from "./reducers";
+import {
+    BUTTON_ACTION_EXECUTED,
+    ButtonActionExecuted,
+    INITIAL_TALLY_LOADED,
+    InitialTallyLoaded,
+    RootState
+} from "./reducers";
 import {connect, ConnectedProps} from "react-redux";
 import {MainButtons} from "./MainButtons";
 import {Row} from "./Row";
@@ -12,8 +18,8 @@ export type Action = {
     action: MouseEventHandler
 }
 
-class Tally {
-    constructor(public name: string, public index: number,) {
+export class Tally {
+    constructor(public name: string, public index: number, public onPgm: boolean = false, public onPrev: boolean = false) {
     }
 }
 
@@ -28,18 +34,19 @@ class SwitchRow {
 }
 
 type ControllerState = {
-    inputs: Tally[],
     me: ME[],
     pgm: SwitchRow,
     prev: SwitchRow,
 }
 
 const mapStateToProps = (state: RootState) => ({
-    uri: state.app.uri
+    uri: state.app.uri,
+    inputs: state.controller.tallies?.filter(tally => tally.name.startsWith("input"))
 });
 
 const mapDispatch = {
-    actionExecuted: (): ButtonActionExecuted => ({type: BUTTON_ACTION_EXECUTED})
+    actionExecuted: (): ButtonActionExecuted => ({type: BUTTON_ACTION_EXECUTED}),
+    initialTallyLoaded: (tallies: Tally[]): InitialTallyLoaded => ({type: INITIAL_TALLY_LOADED, tallies: tallies})
 }
 
 const connector = connect(
@@ -51,7 +58,6 @@ type Props = ConnectedProps<typeof connector>
 
 class ControllerComponent extends React.Component<Props, ControllerState> {
     state: ControllerState = {
-        inputs: [],
         me: [],
         pgm: new SwitchRow([], 'Pgm'),
         prev: new SwitchRow([], 'Prev'),
@@ -63,8 +69,10 @@ class ControllerComponent extends React.Component<Props, ControllerState> {
         //connect websocket
         this.connectWebsocket();
         // get tally
-        this.getTally().then(() =>
-            this.getSwitcher());
+        this.getTally().then((tallies) => {
+            this.props.initialTallyLoaded(tallies);
+            this.getSwitcher();
+        });
     }
 
     componentWillUnmount() {
@@ -103,11 +111,16 @@ class ControllerComponent extends React.Component<Props, ControllerState> {
         console.debug('parsed: %o', document)
         let columns = document.getElementsByTagName('column');
         let inputs = []
+        let tallies: Tally[] = []
         const pgmInputs: Action[] = []
         const prevInputs = []
         for (const column of columns) {
+            const tally = new Tally(column.getAttribute('name') ?? '',
+                +(column.getAttribute('index') ?? ''),
+                column.getAttribute('on_pgm') === "true",
+                column.getAttribute('on_prev') === "true");
+            tallies.push(tally)
             if (column.getAttribute('name')?.startsWith('input')) {
-                const tally = new Tally(column.getAttribute('name') ?? '', +(column.getAttribute('index') ?? ''));
                 inputs.push(tally);
                 pgmInputs.push({
                     // tally: tally,
@@ -124,11 +137,11 @@ class ControllerComponent extends React.Component<Props, ControllerState> {
             }
         }
         this.setState({
-            inputs: inputs,
             prev: {...this.state.prev, inputs: prevInputs},
             pgm: {...this.state.pgm, inputs: pgmInputs}
         });
         console.groupEnd()
+        return tallies
     }
 
     getSwitcher = async () => {
@@ -139,48 +152,52 @@ class ControllerComponent extends React.Component<Props, ControllerState> {
         let document = new DOMParser().parseFromString(xml, "text/xml");
         console.debug('parsed: %o', document)
         let columns = document.getElementsByTagName('simulated_input');
-        let inputs = []
-        for (const column of columns) {
-            if (column.getAttribute('simulated_input_number')?.startsWith('V')) {
-                console.debug(column)
-                const name = column.getAttribute('simulated_input_number') ?? ''
-                const activeInputs = this.getActiveInputs(column)
-                const a = new SwitchRow(this.state.inputs.map((value, index) => ({
-                    tally: value,
-                    label: (value.index + 1).toString(),
-                    active: index === activeInputs.a,
-                    action: () => this.sendShortcut(`name=${name}_a_row&value=${value.index}`)
-                })), 'A')
-                a.inputs.push(...this.createAdditionalActions(name, 'a'))
-                const b = new SwitchRow(this.state.inputs.map((value, index) => ({
-                    tally: value,
-                    label: (value.index + 1).toString(),
-                    active: index === activeInputs.b,
-                    action: () => this.sendShortcut(`name=${name}_b_row&value=${value.index}`)
-                })), 'B')
-                b.inputs.push(...this.createAdditionalActions(name, 'b'))
-                const c = new SwitchRow(this.state.inputs.map((value, index) => ({
-                    tally: value,
-                    label: (value.index + 1).toString(),
-                    active: index === activeInputs.c,
-                    action: () => this.sendShortcut(`name=${name}_c_row&value=${value.index}`)
-                })), 'C')
-                c.inputs.push(...this.createAdditionalActions(name, 'c'))
-                const d = new SwitchRow(this.state.inputs.map((value, index) => ({
-                    tally: value,
-                    label: (value.index + 1).toString(),
-                    active: index === activeInputs.d,
-                    action: () => this.sendShortcut(`name=${name}_d_row&value=${value.index}`)
-                })), 'D')
-                d.inputs.push(...this.createAdditionalActions(name, 'd'))
-                console.debug(a, b, c, d)
-                const dsks = new SwitchRow(this.createDSKActions(name), '')
-                let me = new ME(name, a, b, c, d, dsks);
-                inputs.push(me)
+        let mes = []
+        if (this.props.inputs !== undefined) {
+            const inputs = this.props.inputs
+
+            for (const column of columns) {
+                if (column.getAttribute('simulated_input_number')?.startsWith('V')) {
+                    console.debug(column)
+                    const name = column.getAttribute('simulated_input_number') ?? ''
+                    const activeInputs = this.getActiveInputs(column)
+                    const a = new SwitchRow(inputs.map((value, index) => ({
+                        tally: value,
+                        label: (value.index + 1).toString(),
+                        active: index === activeInputs.a,
+                        action: () => this.sendShortcut(`name=${name}_a_row&value=${value.index}`)
+                    })), 'A')
+                    a.inputs.push(...this.createAdditionalActions(name, 'a'))
+                    const b = new SwitchRow(inputs.map((value, index) => ({
+                        tally: value,
+                        label: (value.index + 1).toString(),
+                        active: index === activeInputs.b,
+                        action: () => this.sendShortcut(`name=${name}_b_row&value=${value.index}`)
+                    })), 'B')
+                    b.inputs.push(...this.createAdditionalActions(name, 'b'))
+                    const c = new SwitchRow(inputs.map((value, index) => ({
+                        tally: value,
+                        label: (value.index + 1).toString(),
+                        active: index === activeInputs.c,
+                        action: () => this.sendShortcut(`name=${name}_c_row&value=${value.index}`)
+                    })), 'C')
+                    c.inputs.push(...this.createAdditionalActions(name, 'c'))
+                    const d = new SwitchRow(inputs.map((value, index) => ({
+                        tally: value,
+                        label: (value.index + 1).toString(),
+                        active: index === activeInputs.d,
+                        action: () => this.sendShortcut(`name=${name}_d_row&value=${value.index}`)
+                    })), 'D')
+                    d.inputs.push(...this.createAdditionalActions(name, 'd'))
+                    console.debug(a, b, c, d)
+                    const dsks = new SwitchRow(this.createDSKActions(name), '')
+                    let me = new ME(name, a, b, c, d, dsks);
+                    mes.push(me)
+                }
             }
         }
-        console.debug("inputs: %o", inputs)
-        this.setState({me: inputs});
+        console.debug("inputs: %o", mes)
+        this.setState({me: mes});
         console.groupEnd()
     }
 
