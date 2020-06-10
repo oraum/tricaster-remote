@@ -1,6 +1,6 @@
 import React from "react";
 import {connect, ConnectedProps} from "react-redux";
-import {ConnectedAction, State as AppState} from "./reducers";
+import {ConnectedAction, RootState} from "./reducers";
 
 interface State {
     value: string,
@@ -10,12 +10,15 @@ interface State {
     info?: Infos
 }
 
-const mapStateToProps = (state: AppState) => ({
-    ip: state.uri
+const mapStateToProps = (state: RootState) => ({
+    ip: state.app.uri
 });
 
 const mapDispatch = {
-    onIPChange: (ip: string): ConnectedAction=>({type: "CONNECTED", uri: ip})
+    onIPChange: (ip: string): ConnectedAction => {
+        localStorage.setItem('ip', ip)
+        return {type: "CONNECTED", uri: ip}
+    }
 }
 
 const connector = connect(
@@ -112,7 +115,7 @@ class ConnectForm extends React.Component<Props, State> {
     }
 }
 
-export const ConnectedConnectForm =  connector(ConnectForm)
+export const ConnectedConnectForm = connector(ConnectForm)
 
 function Infos(props: { data?: Infos }) {
     return (

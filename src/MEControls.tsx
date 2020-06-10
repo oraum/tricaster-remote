@@ -1,6 +1,7 @@
 import React from "react";
-import {ME, Row} from "./App";
+import {Row} from "./App";
 import "./MEControls.scss"
+import {ME} from "./Controller";
 
 export class MEControls extends React.Component<{ me: ME[] }, { meSelected: number }> {
     state = {meSelected: 0}
