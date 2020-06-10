@@ -22,9 +22,21 @@ export class MEControls extends React.Component<{ inputs: Tally[], sendShortcut:
                        sendShortcut={this.props.sendShortcut}/>
                 <MERow inputs={this.props.inputs} row="d" name={mes.name} activeInputIndex={mes.d}
                        sendShortcut={this.props.sendShortcut}/>
+                <Row label="" className="me_dsk"
+                     inputs={this.createDSKActions(mes.name)}/>
             </>
             }
         </>)
+    }
+
+    private createDSKActions(name: string): Action[] {
+        name = name.toLowerCase()
+        const actions: Action[] = []
+        actions.push({label: 'DSK 1', active: false, action: () => this.props.sendShortcut(`name=${name}_dsk1_auto`)});
+        actions.push({label: 'DSK 2', active: false, action: () => this.props.sendShortcut(`name=${name}_dsk2_auto`)});
+        actions.push({label: 'DSK 3', active: false, action: () => this.props.sendShortcut(`name=${name}_dsk3_auto`)});
+        actions.push({label: 'DSK 4', active: false, action: () => this.props.sendShortcut(`name=${name}_dsk4_auto`)});
+        return actions;
     }
 }
 

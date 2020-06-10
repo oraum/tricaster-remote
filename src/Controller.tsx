@@ -28,20 +28,6 @@ export class Tally {
     }
 }
 
-export class ME {
-    constructor(public name: string, public a: SwitchRow, public b: SwitchRow, public c: SwitchRow, public d: SwitchRow, public dsks: SwitchRow) {
-    }
-}
-
-class SwitchRow {
-    constructor(public inputs: Action[], public label: string) {
-    }
-}
-
-type ControllerState = {
-    me: ME[],
-}
-
 const mapStateToProps = (state: RootState) => ({
     uri: state.app.uri,
     inputs: state.controller.tallies?.filter(tally => tally.name.startsWith("input")),
@@ -65,21 +51,16 @@ const connector = connect(
 
 type Props = ConnectedProps<typeof connector>
 
-class ControllerComponent extends React.Component<Props, ControllerState> {
-    state: ControllerState = {
-        me: [],
-    }
+class ControllerComponent extends React.Component<Props, {}> {
     ws: WebSocket = new WebSocket(`ws://${this.props.uri}/v1/change_notifications`)
 
 
-    componentDidMount() {
-        //connect websocket
-        this.connectWebsocket();
-        // get tally
-        this.getTally().then((tallies) => {
-            this.props.initialTallyLoaded(tallies);
-            this.getSwitcher().then(this.props.switcherLoaded);
-        });
+    private static getActiveInputs(column: Element): { a: number, b: number, c: number, d: number } {
+        const indexA = +(column.getElementsByTagName('source_a')[0].getAttribute('a') || 0);
+        const indexB = +(column.getElementsByTagName('source_b')[0].getAttribute('b') || 0);
+        const indexC = +(column.getElementsByTagName('source_c')[0].getAttribute('c') || 0);
+        const indexD = +(column.getElementsByTagName('source_d')[0].getAttribute('d') || 0);
+        return {a: indexA, b: indexB, c: indexC, d: indexD}
     }
 
     componentWillUnmount() {
@@ -129,70 +110,12 @@ class ControllerComponent extends React.Component<Props, ControllerState> {
         return tallies
     }
 
-    getSwitcher = async () => {
-        let response = await fetch(`http://${this.props.uri}/v1/dictionary?key=switcher`)
-        let xml = await response.text()
-        console.group('Parse Switcher')
-        console.debug('raw: %o', xml)
-        let document = new DOMParser().parseFromString(xml, "text/xml");
-        console.debug('parsed: %o', document)
-        let columns = document.getElementsByTagName('simulated_input');
-        let mes = []
-        let mestates: MEState[] = []
-        if (this.props.inputs !== undefined) {
-            const inputs = this.props.inputs
-
-            for (const column of columns) {
-                if (column.getAttribute('simulated_input_number')?.startsWith('V')) {
-                    console.debug(column)
-                    const name = column.getAttribute('simulated_input_number') ?? ''
-                    const activeInputs = this.getActiveInputs(column)
-                    mestates.push({
-                        name: name,
-                        a: activeInputs.a,
-                        b: activeInputs.b,
-                        c: activeInputs.c,
-                        d: activeInputs.d
-                    })
-                    const a = new SwitchRow(inputs.map((value, index) => ({
-                        tally: value,
-                        label: (value.index + 1).toString(),
-                        active: index === activeInputs.a,
-                        action: () => this.sendShortcut(`name=${name}_a_row&value=${value.index}`)
-                    })), 'A')
-                    a.inputs.push(...this.createAdditionalActions(name, 'a'))
-                    const b = new SwitchRow(inputs.map((value, index) => ({
-                        tally: value,
-                        label: (value.index + 1).toString(),
-                        active: index === activeInputs.b,
-                        action: () => this.sendShortcut(`name=${name}_b_row&value=${value.index}`)
-                    })), 'B')
-                    b.inputs.push(...this.createAdditionalActions(name, 'b'))
-                    const c = new SwitchRow(inputs.map((value, index) => ({
-                        tally: value,
-                        label: (value.index + 1).toString(),
-                        active: index === activeInputs.c,
-                        action: () => this.sendShortcut(`name=${name}_c_row&value=${value.index}`)
-                    })), 'C')
-                    c.inputs.push(...this.createAdditionalActions(name, 'c'))
-                    const d = new SwitchRow(inputs.map((value, index) => ({
-                        tally: value,
-                        label: (value.index + 1).toString(),
-                        active: index === activeInputs.d,
-                        action: () => this.sendShortcut(`name=${name}_d_row&value=${value.index}`)
-                    })), 'D')
-                    d.inputs.push(...this.createAdditionalActions(name, 'd'))
-                    console.debug(a, b, c, d)
-                    const dsks = new SwitchRow(this.createDSKActions(name), '')
-                    let me = new ME(name, a, b, c, d, dsks);
-                    mes.push(me)
-                }
-            }
-        }
-        console.debug("inputs: %o", mes)
-        this.setState({me: mes});
-        console.groupEnd()
-        return mestates
+    componentDidMount() {
+        //connect websocket
+        this.connectWebsocket();
+        // get tally
+        this.getTally().then(this.props.initialTallyLoaded);
+        this.getSwitcher().then(this.props.switcherLoaded)
     }
 
     sendShortcut = (action: string) => {
@@ -217,47 +140,34 @@ class ControllerComponent extends React.Component<Props, ControllerState> {
         );
     }
 
-    private createAdditionalActions(me: string, row: string): Action[] {
-        me = me.toLowerCase()
-        const actions: Action[] = []
-        actions.push(this.createAdditionalAction(me, row, 'DDR 1', 'ddr1'))
-        actions.push(this.createAdditionalAction(me, row, 'DDR 2', 'ddr2'))
-        actions.push(this.createAdditionalAction(me, row, 'GFX 1', 'gfx1'))
-        actions.push(this.createAdditionalAction(me, row, 'GFX 2', 'gfx2'))
-        actions.push(this.createAdditionalAction(me, row, 'ME 1', 'v1'))
-        actions.push(this.createAdditionalAction(me, row, 'ME 2', 'v2'))
-        actions.push(this.createAdditionalAction(me, row, 'ME 3', 'v3'))
-        actions.push(this.createAdditionalAction(me, row, 'ME 4', 'v4'))
-        actions.push(this.createAdditionalAction(me, row, 'Black', 'black'))
-        return actions;
-    }
-
-    private createAdditionalAction(me: string, row: string, label: string, inputValue: string): Action {
-        // FIXME: active
-        return {
-            label: label,
-            active: false,
-            action: () => this.sendShortcut(`name=${me}_${row}_row_named_input&value=${inputValue}`)
+    getSwitcher = async () => {
+        let response = await fetch(`http://${this.props.uri}/v1/dictionary?key=switcher`)
+        let xml = await response.text()
+        console.group('Parse Switcher')
+        console.debug('raw: %o', xml)
+        let document = new DOMParser().parseFromString(xml, "text/xml");
+        console.debug('parsed: %o', document)
+        let columns = document.getElementsByTagName('simulated_input');
+        let mestates: MEState[] = []
+            for (const column of columns) {
+                if (column.getAttribute('simulated_input_number')?.startsWith('V')) {
+                    console.debug(column)
+                    const name = column.getAttribute('simulated_input_number') ?? ''
+                    const activeInputs = ControllerComponent.getActiveInputs(column)
+                    mestates.push({
+                        name: name,
+                        a: activeInputs.a,
+                        b: activeInputs.b,
+                        c: activeInputs.c,
+                        d: activeInputs.d
+                    })
+                }
         }
+        console.debug("inputs: %o", mestates)
+        console.groupEnd()
+        return mestates
     }
 
-    private getActiveInputs(column: Element): { a: number, b: number, c: number, d: number } {
-        const indexA = +(column.getElementsByTagName('source_a')[0].getAttribute('a') || 0);
-        const indexB = +(column.getElementsByTagName('source_b')[0].getAttribute('b') || 0);
-        const indexC = +(column.getElementsByTagName('source_c')[0].getAttribute('c') || 0);
-        const indexD = +(column.getElementsByTagName('source_d')[0].getAttribute('d') || 0);
-        return {a: indexA, b: indexB, c: indexC, d: indexD}
-    }
-
-    private createDSKActions(name: string): Action[] {
-        name = name.toLowerCase()
-        const actions: Action[] = []
-        actions.push({label: 'DSK 1', active: false, action: () => this.sendShortcut(`name=${name}_dsk1_auto`)});
-        actions.push({label: 'DSK 2', active: false, action: () => this.sendShortcut(`name=${name}_dsk2_auto`)});
-        actions.push({label: 'DSK 3', active: false, action: () => this.sendShortcut(`name=${name}_dsk3_auto`)});
-        actions.push({label: 'DSK 4', active: false, action: () => this.sendShortcut(`name=${name}_dsk4_auto`)});
-        return actions;
-    }
 }
 
 export const Controller = connector(ControllerComponent)
