@@ -1,6 +1,6 @@
 import React, {MouseEventHandler} from 'react';
 import './App.scss'
-import {ConnectForm} from "./ConnectForm";
+import {ConnectedConnectForm as ConnectForm} from "./ConnectForm";
 import {NavBar} from "./NavBar";
 import {MEControls} from "./MEControls";
 
@@ -19,12 +19,7 @@ class App extends React.Component<{}, AppState> {
                 <div className={'modal' + (!this.state.connected ? ' is-active' : '')}>
                     <div className="modal-background"/>
                     <div className="modal-content">
-                        <ConnectForm onIPChange={ip => {
-                            console.log(ip);
-                            this.setState({connected: true, uri: ip})
-                            localStorage.setItem('ip', ip)
-
-                        }} ip={localStorage.getItem('ip') ?? undefined}/>
+                        <ConnectForm/>
                     </div>
                 </div>
                 {this.state.uri &&
