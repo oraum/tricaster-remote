@@ -1,6 +1,6 @@
 import React from "react";
 import {connect, ConnectedProps} from "react-redux";
-import {ConnectedAction, RootState} from "./reducers";
+import {CONNECTED, ConnectedAction, RootState} from "./reducers";
 
 interface State {
     value: string,
@@ -17,7 +17,7 @@ const mapStateToProps = (state: RootState) => ({
 const mapDispatch = {
     onIPChange: (ip: string): ConnectedAction => {
         localStorage.setItem('ip', ip)
-        return {type: "CONNECTED", uri: ip}
+        return {type: CONNECTED, uri: ip}
     }
 }
 

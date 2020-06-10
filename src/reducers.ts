@@ -1,5 +1,5 @@
-import {AnyAction, combineReducers} from 'redux'
-import {Action, ME} from "./Controller";
+import {Action, AnyAction, combineReducers} from 'redux'
+import {Action as ActionType, ME} from "./Controller";
 
 export const CONNECTED = 'CONNECTED'
 
@@ -33,14 +33,20 @@ export function appReducer(state = initialState, action: AppActionTypes) {
 
 export const TALLY_LOADED = 'TALLY_LOADED'
 
-export interface TallyLoadedAction extends AnyAction {
+export interface TallyLoadedAction extends Action {
     type: typeof TALLY_LOADED
 }
 
-export type ControllerActionTypes = TallyLoadedAction
+export const BUTTON_ACTION_EXECUTED = 'BUTTON_ACTION_EXECUTED'
+
+export interface ButtonActionExecuted extends Action {
+    type: typeof BUTTON_ACTION_EXECUTED
+}
+
+export type ControllerActionTypes = TallyLoadedAction | ButtonActionExecuted
 
 interface ControllerState {
-    inputs?: Action[],
+    inputs?: ActionType[],
     me?: ME[],
 }
 

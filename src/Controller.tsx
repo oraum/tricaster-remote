@@ -1,6 +1,9 @@
 import React, {MouseEventHandler} from "react";
 import {MEControls} from "./MEControls";
-import {MainButtons,Row} from "./App";
+import {BUTTON_ACTION_EXECUTED, ButtonActionExecuted, RootState} from "./reducers";
+import {connect, ConnectedProps} from "react-redux";
+import {MainButtons} from "./MainButtons";
+import {Row} from "./Row";
 
 export type Action = {
     tally?: Tally,
@@ -31,7 +34,22 @@ type ControllerState = {
     prev: SwitchRow,
 }
 
-export class Controller extends React.Component<{ uri: string }, ControllerState> {
+const mapStateToProps = (state: RootState) => ({
+    uri: state.app.uri
+});
+
+const mapDispatch = {
+    actionExecuted: (): ButtonActionExecuted => ({type: BUTTON_ACTION_EXECUTED})
+}
+
+const connector = connect(
+    mapStateToProps,
+    mapDispatch
+)
+
+type Props = ConnectedProps<typeof connector>
+
+class ControllerComponent extends React.Component<Props, ControllerState> {
     state: ControllerState = {
         inputs: [],
         me: [],
@@ -167,6 +185,7 @@ export class Controller extends React.Component<{ uri: string }, ControllerState
     }
 
     sendShortcut = (action: string) => {
+        this.props.actionExecuted()
         fetch(`http://${this.props.uri}/v1/shortcut?${action}`).then(value => console.debug(value))
     }
 
@@ -226,3 +245,5 @@ export class Controller extends React.Component<{ uri: string }, ControllerState
         return actions;
     }
 }
+
+export const Controller = connector(ControllerComponent)
