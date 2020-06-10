@@ -44,13 +44,6 @@ export interface ButtonActionExecutedAction extends Action {
     type: typeof BUTTON_ACTION_EXECUTED
 }
 
-export const INITIAL_TALLY_LOADED = 'INITIAL_TALLY_LOADED'
-
-export interface InitialTallyLoadedAction extends AnyAction {
-    type: typeof INITIAL_TALLY_LOADED,
-    tallies: Tally[]
-}
-
 export const SWITCHER_LOADED = 'SWITCHER_LOADED'
 
 export interface SwitcherLoadedAction extends AnyAction {
@@ -58,35 +51,21 @@ export interface SwitcherLoadedAction extends AnyAction {
     me: MEState[]
 }
 
-export type ControllerActionTypes =
-    TallyLoadedAction
-    | ButtonActionExecutedAction
-    | InitialTallyLoadedAction
-    | SwitcherLoadedAction
+export type ControllerActionTypes = TallyLoadedAction | ButtonActionExecutedAction | SwitcherLoadedAction
 
 export type MEState = {
     name: string, a: number, b: number, c: number, d: number
 }
 
 interface ControllerState {
-    initalTallyLoaded: boolean
-    inputs?: Tally[],
     me?: MEState[],
     tallies?: Tally[],
 }
 
-export function controllerReducer(state: ControllerState = {initalTallyLoaded: false}, action: ControllerActionTypes) {
+export function controllerReducer(state: ControllerState = {}, action: ControllerActionTypes) {
     switch (action.type) {
         case TALLY_LOADED:
-            if (!state.initalTallyLoaded) {
-                // ignore changes
-                return state
-            }
-            // build page layout
-            //TODO:
-            return {...state}
-        case INITIAL_TALLY_LOADED:
-            return {...state, initalTallyLoaded: true, tallies: action.tallies}
+            return {...state, tallies: action.tallies}
         case SWITCHER_LOADED:
             return {...state, me: action.me}
         default:

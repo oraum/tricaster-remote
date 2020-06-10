@@ -3,8 +3,6 @@ import {MEControls} from "./MEControls";
 import {
     BUTTON_ACTION_EXECUTED,
     ButtonActionExecutedAction,
-    INITIAL_TALLY_LOADED,
-    InitialTallyLoadedAction,
     MEState,
     RootState,
     SWITCHER_LOADED,
@@ -37,10 +35,6 @@ const mapStateToProps = (state: RootState) => ({
 const mapDispatch = {
     actionExecuted: (): ButtonActionExecutedAction => ({type: BUTTON_ACTION_EXECUTED}),
     tallyLoaded: (tallies: Tally[]): TallyLoadedAction => ({type: TALLY_LOADED, tallies: tallies}),
-    initialTallyLoaded: (tallies: Tally[]): InitialTallyLoadedAction => ({
-        type: INITIAL_TALLY_LOADED,
-        tallies: tallies
-    }),
     switcherLoaded: (mes: MEState[]): SwitcherLoadedAction => ({type: SWITCHER_LOADED, me: mes})
 }
 
@@ -68,6 +62,12 @@ class ControllerComponent extends React.Component<Props, {}> {
     }
 
     connectWebsocket = () => {
+        this.ws.onerror = ev => {
+            console.warn(ev)
+            if (this.ws.readyState === WebSocket.CLOSING || this.ws.readyState === WebSocket.CLOSED) {
+                this.connectWebsocket()
+            }
+        }
         this.ws.onclose = this.connectWebsocket
         this.ws.onopen = () => {
             console.debug("TriCaster WebSocket Opened")
@@ -79,10 +79,10 @@ class ControllerComponent extends React.Component<Props, {}> {
             console.log(msg)
             if (msg.data === "tally\x00") {
                 // do tally things
-                this.getTally().then(this.props.tallyLoaded);
+                this.getTally().then();
             } else if (msg.data === "switcher\x00") {
                 //do switcher things
-                this.getSwitcher().then(this.props.switcherLoaded)
+                this.getSwitcher().then()
             } else if (msg.data === "buffer\x00") {
                 // do buffer things
             }
@@ -107,15 +107,15 @@ class ControllerComponent extends React.Component<Props, {}> {
             tallies.push(tally)
         }
         console.groupEnd()
-        return tallies
+        this.props.tallyLoaded(tallies)
     }
 
     componentDidMount() {
         //connect websocket
         this.connectWebsocket();
         // get tally
-        this.getTally().then(this.props.initialTallyLoaded);
-        this.getSwitcher().then(this.props.switcherLoaded)
+        this.getTally().then();
+        this.getSwitcher().then()
     }
 
     sendShortcut = (action: string) => {
@@ -149,23 +149,23 @@ class ControllerComponent extends React.Component<Props, {}> {
         console.debug('parsed: %o', document)
         let columns = document.getElementsByTagName('simulated_input');
         let mestates: MEState[] = []
-            for (const column of columns) {
-                if (column.getAttribute('simulated_input_number')?.startsWith('V')) {
-                    console.debug(column)
-                    const name = column.getAttribute('simulated_input_number') ?? ''
-                    const activeInputs = ControllerComponent.getActiveInputs(column)
-                    mestates.push({
-                        name: name,
-                        a: activeInputs.a,
-                        b: activeInputs.b,
-                        c: activeInputs.c,
-                        d: activeInputs.d
-                    })
-                }
+        for (const column of columns) {
+            if (column.getAttribute('simulated_input_number')?.startsWith('V')) {
+                console.debug(column)
+                const name = column.getAttribute('simulated_input_number') ?? ''
+                const activeInputs = ControllerComponent.getActiveInputs(column)
+                mestates.push({
+                    name: name,
+                    a: activeInputs.a,
+                    b: activeInputs.b,
+                    c: activeInputs.c,
+                    d: activeInputs.d
+                })
+            }
         }
         console.debug("inputs: %o", mestates)
         console.groupEnd()
-        return mestates
+        this.props.switcherLoaded(mestates)
     }
 
 }
