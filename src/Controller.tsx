@@ -8,8 +8,8 @@ import {
     RootState
 } from "./reducers";
 import {connect, ConnectedProps} from "react-redux";
-import {MainButtons} from "./MainButtons";
 import {Row} from "./Row";
+import {MainButtons} from "./MainButtons";
 
 export type Action = {
     tally?: Tally,
@@ -185,25 +185,9 @@ class ControllerComponent extends React.Component<Props, ControllerState> {
             <>
                 <MEControls me={this.state.me}/>
                 <br/>
-                {this.props.inputs !== undefined &&
-                <>
-                    <Row label={'Pgm'} className="pgm"
-                         inputs={this.props.inputs.map(input => ({
-                             tally: input,
-                             label: input.index.toString(),
-                             active: input.onPgm,
-                             action: () => this.sendShortcut(`name=main_a_row&value=${input.index}`)
-                         }))}/>
-                    <Row label={'Prev'} className="prev"
-                         inputs={this.props.inputs.map(input => ({
-                             tally: input,
-                             label: input.index.toString(),
-                             active: input.onPrev,
-                             action: () => this.sendShortcut(`name=main_b_row&value=${input.index}`)
-                         }))}/>
-                </>
+                {this.props.inputs !== undefined && this.props.uri !== undefined &&
+                <MainOuts inputs={this.props.inputs} uri={this.props.uri} sendShortcut={this.sendShortcut}/>
                 }
-                <MainButtons onAction={this.sendShortcut}/>
             </>
         );
     }
@@ -252,3 +236,28 @@ class ControllerComponent extends React.Component<Props, ControllerState> {
 }
 
 export const Controller = connector(ControllerComponent)
+
+
+const MainOuts = (props: { uri: string, inputs: Tally[], sendShortcut: (action: string) => void }) =>
+    <>
+        {
+            props.inputs !== undefined &&
+            <>
+                <Row label={'Pgm'} className="pgm"
+                     inputs={props.inputs.map(input => ({
+                         tally: input,
+                         label: input.index.toString(),
+                         active: input.onPgm,
+                         action: () => props.sendShortcut(`name=main_a_row&value=${input.index}`)
+                     }))}/>
+                <Row label={'Prev'} className="prev"
+                     inputs={props.inputs.map(input => ({
+                         tally: input,
+                         label: input.index.toString(),
+                         active: input.onPrev,
+                         action: () => props.sendShortcut(`name=main_b_row&value=${input.index}`)
+                     }))}/>
+                <MainButtons onAction={props.sendShortcut}/>
+            </>
+        }
+    </>
