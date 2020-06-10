@@ -35,8 +35,6 @@ class SwitchRow {
 
 type ControllerState = {
     me: ME[],
-    pgm: SwitchRow,
-    prev: SwitchRow,
 }
 
 const mapStateToProps = (state: RootState) => ({
@@ -59,8 +57,6 @@ type Props = ConnectedProps<typeof connector>
 class ControllerComponent extends React.Component<Props, ControllerState> {
     state: ControllerState = {
         me: [],
-        pgm: new SwitchRow([], 'Pgm'),
-        prev: new SwitchRow([], 'Prev'),
     }
     ws: WebSocket = new WebSocket(`ws://${this.props.uri}/v1/change_notifications`)
 
@@ -110,36 +106,14 @@ class ControllerComponent extends React.Component<Props, ControllerState> {
         let document = new DOMParser().parseFromString(xml, "text/xml");
         console.debug('parsed: %o', document)
         let columns = document.getElementsByTagName('column');
-        let inputs = []
         let tallies: Tally[] = []
-        const pgmInputs: Action[] = []
-        const prevInputs = []
         for (const column of columns) {
             const tally = new Tally(column.getAttribute('name') ?? '',
                 +(column.getAttribute('index') ?? ''),
                 column.getAttribute('on_pgm') === "true",
                 column.getAttribute('on_prev') === "true");
             tallies.push(tally)
-            if (column.getAttribute('name')?.startsWith('input')) {
-                inputs.push(tally);
-                pgmInputs.push({
-                    // tally: tally,
-                    label: (tally.index + 1).toString(),
-                    active: column.getAttribute('on_pgm') === "true",
-                    action: () => this.sendShortcut(`name=main_a_row&value=${tally.index}`)
-                });
-                prevInputs.push({
-                    // tally: tally,
-                    label: (tally.index + 1).toString(),
-                    active: column.getAttribute('on_prev') === "true",
-                    action: () => this.sendShortcut(`name=main_b_row&value=${tally.index}`)
-                });
-            }
         }
-        this.setState({
-            prev: {...this.state.prev, inputs: prevInputs},
-            pgm: {...this.state.pgm, inputs: pgmInputs}
-        });
         console.groupEnd()
         return tallies
     }
@@ -211,10 +185,24 @@ class ControllerComponent extends React.Component<Props, ControllerState> {
             <>
                 <MEControls me={this.state.me}/>
                 <br/>
-                <Row label={'Pgm'} className="pgm"
-                     inputs={this.state.pgm.inputs}/>
-                <Row label={'Prev'} className="prev"
-                     inputs={this.state.prev.inputs}/>
+                {this.props.inputs !== undefined &&
+                <>
+                    <Row label={'Pgm'} className="pgm"
+                         inputs={this.props.inputs.map(input => ({
+                             tally: input,
+                             label: input.index.toString(),
+                             active: input.onPgm,
+                             action: () => this.sendShortcut(`name=main_a_row&value=${input.index}`)
+                         }))}/>
+                    <Row label={'Prev'} className="prev"
+                         inputs={this.props.inputs.map(input => ({
+                             tally: input,
+                             label: input.index.toString(),
+                             active: input.onPrev,
+                             action: () => this.sendShortcut(`name=main_b_row&value=${input.index}`)
+                         }))}/>
+                </>
+                }
                 <MainButtons onAction={this.sendShortcut}/>
             </>
         );
