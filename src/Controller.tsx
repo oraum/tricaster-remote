@@ -13,6 +13,7 @@ import {
 import {connect, ConnectedProps} from "react-redux";
 import {Row} from "./Row";
 import {MainButtons} from "./MainButtons";
+import {CustomPage} from "./CustomPage";
 
 export type Action = {
     tally?: Tally,
@@ -132,8 +133,9 @@ class ControllerComponent extends React.Component<Props, {}> {
                         <MEControls inputs={this.props.inputs} sendShortcut={this.sendShortcut}
                                     mestates={this.props.mestates}/>
                         <br/>
-                        <MainOuts inputs={this.props.inputs} uri={this.props.uri} sendShortcut={this.sendShortcut}/>
-
+                        <MainOuts inputs={this.props.inputs} sendShortcut={this.sendShortcut}/>
+                        <br/>
+                        <CustomPage inputs={this.props.inputs} sendShortcut={this.sendShortcut}/>
                     </>
                 }
             </>
@@ -173,7 +175,7 @@ class ControllerComponent extends React.Component<Props, {}> {
 export const Controller = connector(ControllerComponent)
 
 
-const MainOuts = (props: { uri: string, inputs: Tally[], sendShortcut: (action: string) => void }) =>
+const MainOuts = (props: { inputs: Tally[], sendShortcut: (action: string) => void }) =>
     <>
         {
             props.inputs !== undefined &&
