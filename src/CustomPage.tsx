@@ -3,9 +3,23 @@ import {mdiPlus} from "@mdi/js";
 import React from "react";
 import {TwoRowControllButton, TwoRowLabel} from "./ControlButton";
 import {Tally} from "./Controller";
+import {MEState} from "./reducers";
 
-export const CustomPage = (props: { inputs: Tally[], sendShortcut: (action: string) => void }) => {
-    const getTopLabel = (fragments: string[]): string => {
+export class CustomPage extends React.Component<{ inputs: Tally[], me: MEState[], sendShortcut: (action: string) => void }, { customButtons: string[] }> {
+//TODO: getActive
+//TODO: Add, Layout, Remove
+    getButtonsFromStorage = (): string[] => {
+        let item = localStorage.getItem('customButtons');
+        if (item) {
+            return JSON.parse(item)
+        }
+        return ['/main/a/1', '/v1/a/4', '/main/auto', '/v2/dsk1']
+    }
+    state = {
+        customButtons: this.getButtonsFromStorage()
+    }
+
+    getTopLabel = (fragments: string[]): string => {
         if (fragments[0] === "main") {
             if (fragments.length < 2) {
                 return "Main"
@@ -20,40 +34,60 @@ export const CustomPage = (props: { inputs: Tally[], sendShortcut: (action: stri
         return ""
     }
 
-    const getAction = (fragments: string[]) => {
+    getAction = (fragments: string[]) => {
         const action = `name=${fragments[1]}_${fragments[2]}${fragments[2] !== "auto" && fragments[2] !== "take" ? "_auto" : ''}`;
-        console.debug(action)
-        return () => props.sendShortcut(action)
+        return () => this.props.sendShortcut(action)
     }
 
-    const getInputAction = (fragments: string[]) => {
-        const action = `name=${fragments[1]}_${fragments[2]}_row&value=${fragments[3]}`;
-        console.debug(action)
-        console.debug(action)
-        return () => props.sendShortcut(action)
+    getInputAction = (fragments: string[]) => {
+        let action: string
+        if (isNaN(+fragments[3])) {
+            action = `name=${fragments[1]}_${fragments[2]}_row_named_input&value=${fragments[3]}`;
+        } else {
+            action = `name=${fragments[1]}_${fragments[2]}_row&value=${fragments[3]}`;
+        }
+        return () => this.props.sendShortcut(action)
     }
 
-    const parseToButton = (customButton: string) => {
+    parseToButton = (customButton: string) => {
         const split = customButton.split('/')
+        const getLabel = (s: string): string => {
+            if (isNaN(+s)) {
+                return s.replace('v', 'ME ').toUpperCase()
+            } else {
+                return (+s + 1).toString()
+            }
+        }
         if (split.length === 4) { //input
             return <TwoRowControllButton key={customButton}
-                                         label={<TwoRowLabel top={getTopLabel(split.slice(1, 3))}
-                                                             buttom={(+split[3] + 1).toString()}/>}
-                                         onClick={getInputAction(split)}/>
+                                         label={<TwoRowLabel top={this.getTopLabel(split.slice(1, 3))}
+                                                             buttom={getLabel(split[3])}/>}
+                                         onClick={this.getInputAction(split)}/>
         } else if (split.length === 3) {
             return <TwoRowControllButton key={customButton}
-                                         label={<TwoRowLabel top={getTopLabel(split.slice(1, 2))}
+                                         label={<TwoRowLabel top={this.getTopLabel(split.slice(1, 2))}
                                                              buttom={split[2].toUpperCase()}/>}
-                                         onClick={getAction(split)}/>
+                                         onClick={this.getAction(split)}/>
         }
     }
 
-    const customButtons = ['/main/a/1', '/v1/a/4', '/main/auto', '/v2/dsk1']
-    const buttons = customButtons.map(parseToButton)
-    return <div>
-        <Icon path={mdiPlus} color="white" size={1}/>
-        {buttons}
-    </div>
+
+    render() {
+        const buttons = this.state.customButtons.map(this.parseToButton)
+        return <div>
+            <button className="button" onClick={() => {
+                const p = prompt("Custom Button")
+                if (p) {
+                    let customButtons = [...this.state.customButtons, p];
+                    localStorage.setItem('customButtons', JSON.stringify(customButtons))
+                    this.setState({customButtons: customButtons})
+                }
+            }}>
+                <Icon path={mdiPlus} color="black" size={1}/>
+            </button>
+            {buttons}
+        </div>
+    }
 }
 
 /* Schema für Custom Buttons

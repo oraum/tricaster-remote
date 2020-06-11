@@ -73,7 +73,11 @@ class ControllerComponent extends React.Component<Props, {}> {
         this.ws.onopen = () => {
             console.debug("TriCaster WebSocket Opened")
             setInterval(() => {
-                this.ws.send('\n')
+                if (this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send('\n')
+                } else {
+                    clearInterval()
+                }
             }, 15000)
         }
         this.ws.onmessage = (msg) => {
@@ -135,7 +139,8 @@ class ControllerComponent extends React.Component<Props, {}> {
                         <br/>
                         <MainOuts inputs={this.props.inputs} sendShortcut={this.sendShortcut}/>
                         <br/>
-                        <CustomPage inputs={this.props.inputs} sendShortcut={this.sendShortcut}/>
+                        <CustomPage inputs={this.props.inputs} me={this.props.mestates}
+                                    sendShortcut={this.sendShortcut}/>
                     </>
                 }
             </>

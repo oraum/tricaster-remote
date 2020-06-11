@@ -56,6 +56,10 @@ $body-background-color: hsl(0, 1%, 29%);
 }
 
 .two-row {
+  &.button {
+    @include button(#adadad, #f0f0f0);
+  }
+
   height: 3.5em;
   width: 4em;
   line-height: 1.4;
