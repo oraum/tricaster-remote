@@ -46,8 +46,9 @@ const connector = connect(
 
 type Props = ConnectedProps<typeof connector>
 
-class ControllerComponent extends React.Component<Props, {}> {
+class ControllerComponent extends React.Component<Props, { page: number }> {
     ws: WebSocket = new WebSocket(`ws://${this.props.uri}/v1/change_notifications`)
+    state = {page: 0}
 
 
     private static getActiveInputs(column: Element): { a: number, b: number, c: number, d: number } {
@@ -131,17 +132,24 @@ class ControllerComponent extends React.Component<Props, {}> {
     render() {
         return (
             <>
+                <PageSwitch selectedIndex={this.state.page}
+                            pageSelected={(index: number) => this.setState({page: index})}/>
                 {
                     this.props.inputs !== undefined && this.props.uri !== undefined && this.props.mestates !== undefined &&
+                    this.state.page === 0 &&
                     <>
                         <MEControls inputs={this.props.inputs} sendShortcut={this.sendShortcut}
                                     mestates={this.props.mestates}/>
                         <br/>
                         <MainOuts inputs={this.props.inputs} sendShortcut={this.sendShortcut}/>
                         <br/>
-                        <CustomPage inputs={this.props.inputs} me={this.props.mestates}
-                                    sendShortcut={this.sendShortcut}/>
-                    </>
+
+                    </>}
+                {
+                    this.props.inputs !== undefined && this.props.mestates !== undefined &&
+                    this.state.page === 1 &&
+                    <CustomPage inputs={this.props.inputs} me={this.props.mestates}
+                                sendShortcut={this.sendShortcut}/>
                 }
             </>
         );
@@ -203,3 +211,18 @@ const MainOuts = (props: { inputs: Tally[], sendShortcut: (action: string) => vo
             </>
         }
     </>
+
+const PageSwitch = (props: { selectedIndex: number, pageSelected: (index: number) => void }) => {
+    const getClass = (index: number) => {
+        return `button ${index === props.selectedIndex ? 'is-active' : ''}`
+    }
+    return <>
+        <div style={{display: "flex", marginBottom: "0.5em"}}>
+            <div className="label" style={{marginRight: "0.5em"}}>Ansicht</div>
+            <div className="buttons has-addons">
+                <button className={getClass(0)} onClick={() => props.pageSelected(0)}>Standard</button>
+                <button className={getClass(1)} onClick={() => props.pageSelected(1)}>Custom</button>
+            </div>
+        </div>
+    </>
+}
