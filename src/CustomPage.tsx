@@ -6,7 +6,6 @@ import {Tally} from "./Controller";
 import {MEState} from "./reducers";
 
 export class CustomPage extends React.Component<{ inputs: Tally[], me: MEState[], sendShortcut: (action: string) => void }, { customButtons: string[] }> {
-//TODO: getActive
 //TODO: Add, Layout, Remove
     getButtonsFromStorage = (): string[] => {
         let item = localStorage.getItem('customButtons');
@@ -17,6 +16,24 @@ export class CustomPage extends React.Component<{ inputs: Tally[], me: MEState[]
     }
     state = {
         customButtons: this.getButtonsFromStorage()
+    }
+
+    getActive = (fragments: string[]): boolean => {
+        console.debug(fragments)
+        if (fragments[0] === "main") {
+            if (fragments[1] === "a") {
+                return this.props.inputs[+fragments[2]].onPgm
+            } else if (fragments[1] === "b") {
+                return this.props.inputs[+fragments[2]].onPrev
+            }
+        } else if (fragments[0].startsWith("v")) {
+            let meState = this.props.me[+fragments[0][1] - 1];
+            if (fragments[1] === 'a' || fragments[1] === 'b' || fragments[1] === 'c' || fragments[1] === 'd') {
+                return meState[fragments[1]] === +fragments[2]
+            }
+        }
+
+        return false
     }
 
     getTopLabel = (fragments: string[]): string => {
@@ -59,7 +76,7 @@ export class CustomPage extends React.Component<{ inputs: Tally[], me: MEState[]
             }
         }
         if (split.length === 4) { //input
-            return <TwoRowControllButton key={customButton}
+            return <TwoRowControllButton key={customButton} active={this.getActive(split.slice(1))}
                                          label={<TwoRowLabel top={this.getTopLabel(split.slice(1, 3))}
                                                              buttom={getLabel(split[3])}/>}
                                          onClick={this.getInputAction(split)}/>
