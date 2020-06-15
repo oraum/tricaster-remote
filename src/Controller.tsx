@@ -14,6 +14,8 @@ import {connect, ConnectedProps} from "react-redux";
 import {Row} from "./Row";
 import {MainButtons} from "./MainButtons";
 import {CustomPage} from "./CustomPage";
+import Icon from "@mdi/react";
+import {mdiPen} from "@mdi/js";
 
 export type Action = {
     tally?: Tally,
@@ -46,9 +48,9 @@ const connector = connect(
 
 type Props = ConnectedProps<typeof connector>
 
-class ControllerComponent extends React.Component<Props, { page: number }> {
+class ControllerComponent extends React.Component<Props, { page: number, editMode: boolean }> {
     ws: WebSocket = new WebSocket(`ws://${this.props.uri}/v1/change_notifications`)
-    state = {page: 0}
+    state = {page: 0, editMode: false}
 
 
     private static getActiveInputs(column: Element): { a: number, b: number, c: number, d: number } {
@@ -132,7 +134,10 @@ class ControllerComponent extends React.Component<Props, { page: number }> {
     render() {
         return (
             <>
-                <PageSwitch selectedIndex={this.state.page}
+                <PageSwitch selectedIndex={this.state.page} toggleEdit={event => {
+                    event.preventDefault();
+                    this.setState({...this.state, editMode: !this.state.editMode})
+                }}
                             pageSelected={(index: number) => this.setState({page: index})}/>
                 {
                     this.props.inputs !== undefined && this.props.uri !== undefined && this.props.mestates !== undefined &&
@@ -149,6 +154,7 @@ class ControllerComponent extends React.Component<Props, { page: number }> {
                     this.props.inputs !== undefined && this.props.mestates !== undefined &&
                     this.state.page === 1 &&
                     <CustomPage inputs={this.props.inputs} me={this.props.mestates}
+                                editMode={this.state.editMode}
                                 sendShortcut={this.sendShortcut}/>
                 }
             </>
@@ -188,31 +194,52 @@ class ControllerComponent extends React.Component<Props, { page: number }> {
 export const Controller = connector(ControllerComponent)
 
 
-const MainOuts = (props: { inputs: Tally[], sendShortcut: (action: string) => void }) =>
-    <>
+const MainOuts = (props: { inputs: Tally[], sendShortcut: (action: string) => void }) => {
+    const createAdditionalAction = (row: string, label: string, inputValue: string): Action => {
+        // FIXME: active
+        return {
+            label: label,
+            active: false,
+            action: () => props.sendShortcut(`name=main_${row}_row_named_input&value=${inputValue}`)
+        }
+    }
+    const createAdditionalActions = (row: string): Action[] => {
+        const actions: Action[] = []
+        actions.push(createAdditionalAction(row, 'DDR 1', 'ddr1'))
+        actions.push(createAdditionalAction(row, 'DDR 2', 'ddr2'))
+        actions.push(createAdditionalAction(row, 'GFX 1', 'gfx1'))
+        actions.push(createAdditionalAction(row, 'GFX 2', 'gfx2'))
+        actions.push(createAdditionalAction(row, 'ME 1', 'v1'))
+        actions.push(createAdditionalAction(row, 'ME 2', 'v2'))
+        actions.push(createAdditionalAction(row, 'ME 3', 'v3'))
+        actions.push(createAdditionalAction(row, 'ME 4', 'v4'))
+        return actions;
+    }
+    return <>
         {
             props.inputs !== undefined &&
             <>
                 <Row label={'Pgm'} className="pgm"
-                     inputs={props.inputs.map(input => ({
+                     inputs={[...props.inputs.map(input => ({
                          tally: input,
                          label: (input.index + 1).toString(),
                          active: input.onPgm,
                          action: () => props.sendShortcut(`name=main_a_row&value=${input.index}`)
-                     }))}/>
+                     })), ...createAdditionalActions('a')]}/>
                 <Row label={'Prev'} className="prev"
-                     inputs={props.inputs.map(input => ({
+                     inputs={[...props.inputs.map(input => ({
                          tally: input,
                          label: (input.index + 1).toString(),
                          active: input.onPrev,
                          action: () => props.sendShortcut(`name=main_b_row&value=${input.index}`)
-                     }))}/>
+                     })), ...createAdditionalActions('b')]}/>
                 <MainButtons onAction={props.sendShortcut}/>
             </>
         }
     </>
+}
 
-const PageSwitch = (props: { selectedIndex: number, pageSelected: (index: number) => void }) => {
+const PageSwitch = (props: { selectedIndex: number, pageSelected: (index: number) => void, toggleEdit: (event: React.MouseEvent) => void }) => {
     const getClass = (index: number) => {
         return `button ${index === props.selectedIndex ? 'is-active' : ''}`
     }
@@ -220,9 +247,17 @@ const PageSwitch = (props: { selectedIndex: number, pageSelected: (index: number
         <div style={{display: "flex", marginBottom: "0.5em"}}>
             <div className="label" style={{marginRight: "0.5em"}}>Ansicht</div>
             <div className="buttons has-addons">
-                <button className={getClass(0)} onClick={() => props.pageSelected(0)}>Standard</button>
-                <button className={getClass(1)} onClick={() => props.pageSelected(1)}>Custom</button>
+                <button className={getClass(0)} onClick={() => props.pageSelected(0)}>Standard
+                </button>
+                <button className={getClass(1)} onClick={() => props.pageSelected(1)}>Custom
+                </button>
             </div>
+            <span style={{flexGrow: 1}}/>
+            {props.selectedIndex === 1 &&
+            <button className="button" onClick={props.toggleEdit}>
+                <Icon path={mdiPen} size={1} color="black"/>
+            </button>}
         </div>
     </>
 }
+

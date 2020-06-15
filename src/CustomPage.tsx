@@ -5,14 +5,14 @@ import {TwoRowControllButton, TwoRowLabel} from "./ControlButton";
 import {Tally} from "./Controller";
 import {MEState} from "./reducers";
 
-export class CustomPage extends React.Component<{ inputs: Tally[], me: MEState[], sendShortcut: (action: string) => void }, { customButtons: string[] }> {
+export class CustomPage extends React.Component<{ inputs: Tally[], me: MEState[], sendShortcut: (action: string) => void, editMode: boolean }, { customButtons: string[][] }> {
 //TODO: Add, Layout, Remove
-    getButtonsFromStorage = (): string[] => {
+    getButtonsFromStorage = (): string[][] => {
         let item = localStorage.getItem('customButtons');
         if (item) {
             return JSON.parse(item)
         }
-        return ['/main/a/1', '/v1/a/4', '/main/auto', '/v2/dsk1']
+        return [['/main/a/1', '/v1/a/4', '/main/auto', '/v2/dsk1']]
     }
     state = {
         customButtons: this.getButtonsFromStorage()
@@ -77,34 +77,64 @@ export class CustomPage extends React.Component<{ inputs: Tally[], me: MEState[]
         }
         if (split.length === 4) { //input
             return <TwoRowControllButton key={customButton} active={this.getActive(split.slice(1))}
-                                         label={<TwoRowLabel top={this.getTopLabel(split.slice(1, 3))}
-                                                             buttom={getLabel(split[3])}/>}
+                                         label={<TwoRowLabel
+                                             top={this.getTopLabel(split.slice(1, 3))}
+                                             buttom={getLabel(split[3])}/>}
                                          onClick={this.getInputAction(split)}/>
         } else if (split.length === 3) {
             return <TwoRowControllButton key={customButton}
-                                         label={<TwoRowLabel top={this.getTopLabel(split.slice(1, 2))}
-                                                             buttom={split[2].toUpperCase()}/>}
+                                         label={<TwoRowLabel
+                                             top={this.getTopLabel(split.slice(1, 2))}
+                                             buttom={split[2].toUpperCase()}/>}
                                          onClick={this.getAction(split)}/>
+        }
+    }
+
+    addButton = (button: string, row: number) => {
+        if (row === this.state.customButtons.length) {
+            let customButtons = [...this.state.customButtons, [button]]
+            localStorage.setItem('customButtons', JSON.stringify(customButtons))
+            this.setState({customButtons: customButtons})
+        } else {
+            let newRow = [...this.state.customButtons[row]]
+            newRow.push(button)
+
+            let customButtons = [...this.state.customButtons.slice(0, row), newRow, ...this.state.customButtons.slice(row + 1)]
+            console.log(customButtons)
+            localStorage.setItem('customButtons', JSON.stringify(customButtons))
+            this.setState({customButtons: customButtons})
         }
     }
 
 
     render() {
-        const buttons = this.state.customButtons.map(this.parseToButton)
+        const buttons = this.state.customButtons.map((value, i) =>
+            <div>{value.map(this.parseToButton)}
+                <AddButton editMode={this.props.editMode}
+                           newButtonAdded={button => this.addButton(button, i)}/>
+            </div>)
         return <div>
-            <button className="button" onClick={() => {
-                const p = prompt("Custom Button")
-                if (p) {
-                    let customButtons = [...this.state.customButtons, p];
-                    localStorage.setItem('customButtons', JSON.stringify(customButtons))
-                    this.setState({customButtons: customButtons})
-                }
-            }}>
-                <Icon path={mdiPlus} color="black" size={1}/>
-            </button>
             {buttons}
+            <AddButton
+                editMode={this.props.editMode}
+                newButtonAdded={button => this.addButton(button, this.state.customButtons.length)}
+            />
         </div>
     }
+}
+
+
+const AddButton = (props: { editMode: boolean, newButtonAdded: (button: string) => void }) => {
+    return <>
+        {props.editMode && <button className="button" onClick={() => {
+            const p = prompt("Custom Button")
+            if (p) {
+                props.newButtonAdded(p)
+            }
+        }}>
+            <Icon path={mdiPlus} color="black" size={1}/>
+        </button>}
+    </>
 }
 
 /* Schema für Custom Buttons
