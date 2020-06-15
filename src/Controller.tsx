@@ -32,6 +32,7 @@ export class Tally {
 const mapStateToProps = (state: RootState) => ({
     uri: state.app.uri,
     inputs: state.controller.tallies?.filter(tally => tally.name.startsWith("input")),
+    tallies: state.controller.tallies || [],
     mestates: state.controller.me
 });
 
@@ -153,7 +154,7 @@ class ControllerComponent extends React.Component<Props, { page: number, editMod
                 {
                     this.props.inputs !== undefined && this.props.mestates !== undefined &&
                     this.state.page === 1 &&
-                    <CustomPage inputs={this.props.inputs} me={this.props.mestates}
+                    <CustomPage inputs={this.props.tallies} me={this.props.mestates}
                                 editMode={this.state.editMode}
                                 sendShortcut={this.sendShortcut}/>
                 }

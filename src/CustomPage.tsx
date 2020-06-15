@@ -12,7 +12,7 @@ export class CustomPage extends React.Component<{ inputs: Tally[], me: MEState[]
         if (item) {
             return JSON.parse(item)
         }
-        return [['/main/a/1', '/v1/a/4', '/main/auto', '/v2/dsk1']]
+        return []
     }
     state = {
         customButtons: this.getButtonsFromStorage()
@@ -20,7 +20,9 @@ export class CustomPage extends React.Component<{ inputs: Tally[], me: MEState[]
 
     getActive = (fragments: string[]): boolean => {
         if (fragments[0] === "main") {
+            return false
             if (fragments[1] === "a") {
+                //FIXME:
                 return this.props.inputs[+fragments[2]].onPgm
             } else if (fragments[1] === "b") {
                 return this.props.inputs[+fragments[2]].onPrev
@@ -114,6 +116,7 @@ export class CustomPage extends React.Component<{ inputs: Tally[], me: MEState[]
     }
 
     deleteElement = (row: number, element: number) => {
+        //TODO: delete row if last element is deleted
         let newRow = [...this.state.customButtons[row].slice(0, element), ...this.state.customButtons[row].slice(element + 1)]
 
         let customButtons = [...this.state.customButtons.slice(0, row), newRow, ...this.state.customButtons.slice(row + 1)]
@@ -125,31 +128,130 @@ export class CustomPage extends React.Component<{ inputs: Tally[], me: MEState[]
     render() {
         const buttons = this.state.customButtons.map((value, i) =>
             <div key={`row_${i}`}>{value.map((value1, index) => this.wrapButtons(value1, index, i))}
-                <AddButton editMode={this.props.editMode}
+                <AddButton editMode={this.props.editMode} me={this.props.me}
+                           inputs={this.props.inputs}
                            newButtonAdded={button => this.addButton(button, i)}/>
             </div>)
         return <div>
             {buttons}
-            <AddButton
-                editMode={this.props.editMode}
-                newButtonAdded={button => this.addButton(button, this.state.customButtons.length)}
+            <AddButton me={this.props.me} inputs={this.props.inputs}
+                       editMode={this.props.editMode}
+                       newButtonAdded={button => this.addButton(button, this.state.customButtons.length)}
             />
         </div>
     }
 }
 
 
-const AddButton = (props: { editMode: boolean, newButtonAdded: (button: string) => void }) => {
-    return <>
-        {props.editMode && <button className="button" onClick={() => {
-            const p = prompt("Custom Button")
-            if (p) {
-                props.newButtonAdded(p)
+class AddButton extends React.Component<{ editMode: boolean, newButtonAdded: (button: string) => void, inputs: Tally[], me: MEState[] },
+    { showAddModal: boolean, switcherSelected: boolean, rowSelected: boolean, switcher?: string, row?: string }> {
+    state = {
+        showAddModal: false,
+        switcherSelected: false,
+        rowSelected: false,
+        switcher: undefined,
+        row: undefined
+    }
+
+    setSwitcher = (switcher: string) => {
+        this.setState({...this.state, switcher: switcher, switcherSelected: true})
+    }
+
+    setRow = (row: string) => {
+        this.setState({...this.state, row: row, rowSelected: true})
+    }
+    setInput = (input: string) => {
+        this.props.newButtonAdded(`/${this.state.switcher}${this.state.row ? '/' + this.state.row : ''}/${input}`)
+        this.setState({showAddModal: false})
+    }
+
+    createList = () => {
+        if (!this.state.switcherSelected) {
+            return (<ul>
+                <li onClick={() => this.setSwitcher('main')}>Main</li>
+                <li onClick={() => this.setSwitcher('v1')}>ME 1</li>
+                <li onClick={() => this.setSwitcher('v2')}>ME 2</li>
+                <li onClick={() => this.setSwitcher('v3')}>ME 3</li>
+                <li onClick={() => this.setSwitcher('v4')}>ME 4</li>
+            </ul>)
+        } else if (!this.state.rowSelected) {
+            const dsks = <>
+                <li onClick={() => this.setInput('dsk1')}>DSK 1</li>
+                <li onClick={() => this.setInput('dsk2')}>DSK 2</li>
+                <li onClick={() => this.setInput('dsk3')}>DSK 3</li>
+                <li onClick={() => this.setInput('dsk4')}>DSK 4</li>
+                <li onClick={() => this.setInput('auto')}>AUTO</li>
+                <li onClick={() => this.setInput('take')}>TAKE</li>
+            </>
+            if (this.state.switcher === 'main') {
+                return <ul>
+                    <li onClick={() => this.setRow('a')}>Pgm</li>
+                    <li onClick={() => this.setRow('b')}>Prev</li>
+                    {dsks}
+                </ul>
+            } else {
+                return (<ul>
+                    <li onClick={() => this.setRow('a')}>Row A</li>
+                    <li onClick={() => this.setRow('b')}>Row B</li>
+                    <li onClick={() => this.setRow('c')}>Row C</li>
+                    <li onClick={() => this.setRow('d')}>Row D</li>
+                    {dsks}
+                </ul>)
             }
-        }}>
-            <Icon path={mdiPlus} color="black" size={1}/>
-        </button>}
-    </>
+        } else {
+            const inputs = this.props.inputs.filter(value => value.name.startsWith('input')).map(value =>
+                <li onClick={() => this.setInput(value.index.toString())}>Input {value.index + 1}</li>)
+            const bfrs = this.props.inputs.filter(value => value.name.startsWith('bfr')).map(value =>
+                <li onClick={() => this.setInput(value.name)}>{value.name.toUpperCase()}</li>)
+            const black = <li onClick={() => this.setInput('black')}>Black</li>
+            const ddrs = this.props.inputs.filter(value => value.name.startsWith('ddr') && !value.name.includes('_')).map(value =>
+                <li onClick={() => this.setInput(value.name)}>{value.name.toUpperCase()}</li>)
+            const gfxs = this.props.inputs.filter(value => value.name.startsWith('gfx') && !value.name.includes('_')).map(value =>
+                <li onClick={() => this.setInput(value.name)}>{value.name.toUpperCase()}</li>)
+            const mes = this.props.inputs.filter(value => value.name.startsWith('v')).map((value, i) =>
+                <li onClick={() => this.setInput(value.name)}>ME {i + 1}</li>)
+            return (<ul>
+                {inputs}
+                {bfrs}
+                {black}
+                {ddrs}
+                {gfxs}
+                {mes}
+            </ul>)
+        }
+    }
+
+    render() {
+        return <>
+            {this.props.editMode && <button className="button" onClick={() => {
+                this.setState({showAddModal: true, switcherSelected: false, rowSelected: false})
+            }}>
+                <Icon path={mdiPlus} color="black" size={1}/>
+            </button>}
+            {this.state.showAddModal && <>
+                <div className='modal is-active'>
+                    <div className="modal-background" onClick={event => {
+                        event.preventDefault();
+                        this.setState({...this.state, showAddModal: false});
+                    }}/>
+                    <div className="modal-content">
+                        <div className="container">
+                            <div className="card">
+                                <div className="card-header">
+                                    <div className="card-header-title">
+                                        {this.state.switcher || 'Switcher'}
+                                    </div>
+                                </div>
+                                <div className="card-content">
+                                    {this.createList()}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </>}
+        </>
+    }
 }
 
 const DeleteContainer = (props: { editMode: boolean, elementDeleted: () => void, children?: React.ReactNode }) => {
