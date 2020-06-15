@@ -1,5 +1,5 @@
 import Icon from "@mdi/react";
-import {mdiPlus} from "@mdi/js";
+import {mdiDelete, mdiPlus} from "@mdi/js";
 import React from "react";
 import {TwoRowControllButton, TwoRowLabel} from "./ControlButton";
 import {Tally} from "./Controller";
@@ -19,7 +19,6 @@ export class CustomPage extends React.Component<{ inputs: Tally[], me: MEState[]
     }
 
     getActive = (fragments: string[]): boolean => {
-        console.debug(fragments)
         if (fragments[0] === "main") {
             if (fragments[1] === "a") {
                 return this.props.inputs[+fragments[2]].onPgm
@@ -90,6 +89,15 @@ export class CustomPage extends React.Component<{ inputs: Tally[], me: MEState[]
         }
     }
 
+    wrapButtons = (button: string, index: number, rowIndex: number) => {
+        return <DeleteContainer key={`del_${rowIndex}_${index}`} editMode={this.props.editMode}
+                                elementDeleted={() => {
+                                    this.deleteElement(rowIndex, index)
+                                }}>
+            {this.parseToButton(button)}
+        </DeleteContainer>
+    }
+
     addButton = (button: string, row: number) => {
         if (row === this.state.customButtons.length) {
             let customButtons = [...this.state.customButtons, [button]]
@@ -100,16 +108,23 @@ export class CustomPage extends React.Component<{ inputs: Tally[], me: MEState[]
             newRow.push(button)
 
             let customButtons = [...this.state.customButtons.slice(0, row), newRow, ...this.state.customButtons.slice(row + 1)]
-            console.log(customButtons)
             localStorage.setItem('customButtons', JSON.stringify(customButtons))
             this.setState({customButtons: customButtons})
         }
     }
 
+    deleteElement = (row: number, element: number) => {
+        let newRow = [...this.state.customButtons[row].slice(0, element), ...this.state.customButtons[row].slice(element + 1)]
+
+        let customButtons = [...this.state.customButtons.slice(0, row), newRow, ...this.state.customButtons.slice(row + 1)]
+        localStorage.setItem('customButtons', JSON.stringify(customButtons))
+        this.setState({customButtons: customButtons})
+    }
+
 
     render() {
         const buttons = this.state.customButtons.map((value, i) =>
-            <div>{value.map(this.parseToButton)}
+            <div key={`row_${i}`}>{value.map((value1, index) => this.wrapButtons(value1, index, i))}
                 <AddButton editMode={this.props.editMode}
                            newButtonAdded={button => this.addButton(button, i)}/>
             </div>)
@@ -135,6 +150,21 @@ const AddButton = (props: { editMode: boolean, newButtonAdded: (button: string) 
             <Icon path={mdiPlus} color="black" size={1}/>
         </button>}
     </>
+}
+
+const DeleteContainer = (props: { editMode: boolean, elementDeleted: () => void, children?: React.ReactNode }) => {
+    return <span style={{position: "relative"}}>
+        {props.children}
+        {props.editMode &&
+        <button style={{position: "absolute", right: "0", background: "none", border: "none"}}
+                onClick={event => {
+                    event.preventDefault();
+                    props.elementDeleted();
+                }}>
+            <Icon path={mdiDelete} color="red" size={1}/>
+        </button>
+        }
+    </span>
 }
 
 /* Schema für Custom Buttons
