@@ -1,4 +1,6 @@
 import React from "react";
+import {connect, ConnectedProps} from "react-redux";
+import {CONNECTED, ConnectedAction, RootState} from "./reducers";
 
 interface State {
     value: string,
@@ -8,12 +10,25 @@ interface State {
     info?: Infos
 }
 
-type Props = {
-    ip?: string,
-    onIPChange(ip: string): void
+const mapStateToProps = (state: RootState) => ({
+    ip: state.app.uri
+});
+
+const mapDispatch = {
+    onIPChange: (ip: string): ConnectedAction => {
+        localStorage.setItem('ip', ip)
+        return {type: CONNECTED, uri: ip}
+    }
 }
 
-export class ConnectForm extends React.Component<Props, State> {
+const connector = connect(
+    mapStateToProps,
+    mapDispatch
+)
+
+type Props = ConnectedProps<typeof connector>
+
+class ConnectForm extends React.Component<Props, State> {
     constructor(props: Readonly<Props>) {
         super(props);
         this.state = {value: props.ip ?? '127.0.0.1', connecting: false, success: false, error: false}
@@ -99,6 +114,8 @@ export class ConnectForm extends React.Component<Props, State> {
         );
     }
 }
+
+export const ConnectedConnectForm = connector(ConnectForm)
 
 function Infos(props: { data?: Infos }) {
     return (

@@ -47,9 +47,20 @@ $body-background-color: hsl(0, 1%, 29%);
 
 .label {
   color: white;
+
   &:first-child {
     display: inline-block;
     min-width: 3em;
     padding-top: calc(0.5em - 1px);
   }
+}
+
+.two-row {
+  &.button {
+    @include button(#adadad, #d9d9d9);
+  }
+
+  height: 3.5em;
+  width: 4em;
+  line-height: 1.4;
 }

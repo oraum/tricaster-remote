@@ -12,17 +12,17 @@
 
 - hosts: webserver
   tasks:
-    - name: deploy site
+    -   name: deploy site
       unarchive:
-        src: /tmp/build.tgz
-        dest: /var/www/html/
+          src: /tmp/build.tgz
+        dest: /var/www/html/tricaster
         owner: www-data
         group: www-data
 #        mode: "u=rwX,g=rX,o=rX"
-      become: yes
-    - name: fix permissions
+        become: true
+    -   name: fix permissions
       file:
-        path: /var/www/html
+          path: /var/www/html/tricaster
         owner: www-data
         group: www-data
         recurse: yes
@@ -30,4 +30,4 @@
       loop:
         - '-x'
         - 'u=rwX,g=rX,o=rX'
-      become: yes
+        become: true
